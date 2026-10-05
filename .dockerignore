@@ -1,0 +1,4 @@
+node_modules
+.wetube-auth
+.git
+npm-debug.log*

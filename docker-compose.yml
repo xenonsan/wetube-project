@@ -1,0 +1,12 @@
+services:
+  wetube:
+    build: .
+    container_name: wetube
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "4646"
+    ports:
+      - "127.0.0.1:4646:4646"
+    volumes:
+      - ./.wetube-auth:/app/.wetube-auth
