@@ -174,29 +174,43 @@ app.get('/search', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-app.get('/shorts', async (req, res, next) => {
+app.get(['/shorts', '/shorts/:id'], async (req, res, next) => {
   try {
     const yt = await youtubePromise;
+    const targetId = String(req.params.id || '').trim();
     const channelId = String(req.query.channel || '').trim();
     const params = await eduParams(EDU_CONFIG);
     let feed = null, channelTitle = '', initial = [], mode = 'feed', seedId = '';
+
+    if (/^[\w-]{11}$/.test(targetId)) {
+      try {
+        const info = await yt.getBasicInfo(targetId);
+        const video = shortInfoToVideo(info);
+        if (video?.id) {
+          video.isShort = true;
+          initial.push(video);
+          seedId = targetId;
+        }
+      } catch {}
+    }
+
     if (/^UC[\w-]{20,}$/.test(channelId)) {
       const channel = await yt.getChannel(channelId);
       channelTitle = text(channel.title, 'チャンネル');
       if (channel.has_shorts) {
         feed = await channel.getShorts();
-        initial = collectShorts(feed, 48);
+        initial.push(...collectShorts(feed, 48));
       }
     } else {
       // Prefer YouTube's seedless Shorts sequence. Search is only a fallback
       // because WEB search commonly exposes ordinary Video nodes instead of Shorts.
       try {
         const seeded = await discoverSeedlessShorts(yt, 24);
-        initial = seeded.videos;
-        seedId = seeded.seedId;
+        initial.push(...seeded.videos);
+        if (!seedId) seedId = seeded.seedId;
         mode = 'seedless';
       } catch {}
-      if (!initial.length) {
+      if (initial.length < 12) {
         const searches = await Promise.all(['shorts','viral shorts','short video'].map(term => yt.search(term, { type: 'video' }).catch(() => null)));
         for (const result of searches) {
           if (!result) continue;
@@ -206,12 +220,9 @@ app.get('/shorts', async (req, res, next) => {
         }
         feed = searches.find(Boolean) || null;
       }
-      const unique = [], seen = new Set();
-      for (const item of initial) if (item?.id && !seen.has(item.id)) { seen.add(item.id); unique.push(item); }
-      initial = unique.slice(0, 48);
     }
     const deduped = [], seen = new Set();
-    for (const item of initial) if (!seen.has(item.id)) { seen.add(item.id); deduped.push(item); }
+    for (const item of initial) if (item?.id && !seen.has(item.id)) { seen.add(item.id); deduped.push(item); }
     const token = makeShortSession(feed, { channelId, channelTitle, seen: [...seen], mode, seedId });
     const videos = prepareShorts(deduped.slice(0, 48), params, { channelId, channelTitle });
     const authClient = await ensureAuthClient(req);
@@ -273,10 +284,24 @@ app.get('/my-channel', async (req, res) => {
 });
 app.get('/playlists', async (req, res, next) => {
   try {
-    const yt = await activeYouTube(req);
-    const library = typeof yt.getLibrary === 'function' ? await yt.getLibrary() : null;
-    const playlists = library ? collectPlaylists(library, 80) : [];
-    render(res, { page: 'search', title: '再生リスト', query: '再生リスト', videos: playlists });
+    const authClient = await ensureAuthClient(req);
+    let playlists = [];
+    if (authClient.session.logged_in) {
+      try {
+        const library = await authClient.getLibrary();
+        playlists = library ? collectPlaylists(library, 80) : [];
+      } catch (err) {
+        console.warn('Account playlists error:', err?.message || err);
+      }
+    }
+    if (!playlists.length) {
+      try {
+        const yt = await youtubePromise;
+        const search = await cached('playlists:popular', 300000, () => yt.search('人気 再生リスト', { type: 'playlist' }));
+        playlists = collectPlaylists(search, 40);
+      } catch {}
+    }
+    render(res, { page: 'search', title: '再生リスト', query: '再生リスト', videos: playlists, authenticated: Boolean(authClient.session.logged_in) });
   } catch (error) { next(error); }
 });
 
@@ -364,11 +389,83 @@ app.get('/watch', async (req, res, next) => {
         );
       } catch {}
     }
-    const video = { id, title: b.title || '動画', author: b.author || b.channel?.name || 'YouTube', authorId, authorThumbnail, views: b.view_count ? Number(b.view_count).toLocaleString('ja-JP') + ' 回視聴' : '', published: b.publish_date || '', description: b.short_description || '' };
+    const owner = info.secondary_info?.owner || {};
+    const subscribers = text(owner.subscriber_count || owner.subscribers, '');
+    let likeCount = '', shortLikeCount = '';
+    walkRaw(info.primary_info, node => {
+      if (node?.short_like_count && !shortLikeCount) shortLikeCount = String(node.short_like_count);
+      if (node?.like_count && !likeCount) likeCount = typeof node.like_count === 'number' ? Number(node.like_count).toLocaleString('ja-JP') : String(node.like_count);
+    });
+    if (!shortLikeCount && likeCount) shortLikeCount = likeCount;
+
+    const video = {
+      id,
+      title: b.title || '動画',
+      author: b.author || b.channel?.name || 'YouTube',
+      authorId,
+      authorThumbnail,
+      views: b.view_count ? Number(b.view_count).toLocaleString('ja-JP') + ' 回視聴' : '',
+      published: b.publish_date || '',
+      description: b.short_description || '',
+      subscribers,
+      likeCount: shortLikeCount || likeCount || '高評価'
+    };
     let related = Array.from(info.watch_next_feed || []).map(normalizeVideo).filter(Boolean).filter(x => x.id !== id);
     if (related.length < 6) { try { const more = collectVideos(await yt.search([b.title, b.author].filter(Boolean).join(' '), { type: 'video' }), 30); const ids = new Set(related.map(x => x.id)); for (const item of more) if (item.id !== id && !ids.has(item.id)) { ids.add(item.id); related.push(item); } } catch {} }
-    render(res, { page: 'watch', title: video.title, video, videos: related.slice(0, 24), playerMode: req.query.player === 'youtube' ? 'youtube' : 'edu', eduUrl: `https://www.youtubeeducation.com/embed/${id}${params}`, eduSources: eduSources.map(source => ({ name: source.name, url: `https://www.youtubeeducation.com/embed/${id}${source.params}` })), youtubeUrl: `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0` });
+    render(res, {
+      page: 'watch',
+      title: video.title,
+      video,
+      videos: related.slice(0, 24),
+      playerMode: req.query.player === 'youtube' ? 'youtube' : 'edu',
+      eduUrl: `https://www.youtubeeducation.com/embed/${id}${params}&enablejsapi=1`,
+      eduSources: eduSources.map(source => ({ name: source.name, url: `https://www.youtubeeducation.com/embed/${id}${source.params}&enablejsapi=1` })),
+      youtubeUrl: `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`
+    });
   } catch (e) { next(e); }
+});
+
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const authClient = await ensureAuthClient(req);
+    const yt = await activeYouTube(req);
+    let items = [];
+    if (authClient.session.logged_in) {
+      try {
+        const subs = await userCached(req, 'account:subscriptions:v2', 60000, () => accountSubscribedChannels(authClient));
+        if (subs && subs.length) {
+          const sample = subs.slice(0, 4);
+          const feeds = await Promise.all(sample.map(c => cached(`recommend:channel:${c.id}`, 300000, async () => {
+            const ch = await yt.getChannel(c.id);
+            return ch.has_videos ? ch.getVideos() : ch;
+          }).catch(() => null)));
+          for (const feed of feeds) {
+            if (feed) items.push(...collectVideos(feed, 2));
+          }
+        }
+      } catch {}
+    }
+    if (!items.length) {
+      try {
+        const trending = await cached('feed:trending', 300000, () => yt.getTrending ? yt.getTrending() : yt.search('急上昇', { type: 'video' }));
+        items = collectVideos(trending, 8);
+      } catch {
+        items = [];
+      }
+    }
+    const notifications = items.slice(0, 10).map(v => ({
+      id: v.id,
+      title: v.title,
+      author: v.author,
+      authorThumbnail: v.authorThumbnail,
+      thumbnail: v.thumbnail,
+      published: v.published || '新着',
+      url: `/watch?v=${v.id}`
+    }));
+    res.set('Cache-Control', 'no-store').json({ notifications, authenticated: Boolean(authClient.session.logged_in) });
+  } catch (err) {
+    res.json({ notifications: [], authenticated: false });
+  }
 });
 
 async function collectChannelFeed(feed, kind = 'videos', limit = 240, maxPages = 10) {

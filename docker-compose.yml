@@ -10,3 +10,7 @@ services:
       - "127.0.0.1:4646:4646"
     volumes:
       - ./.wetube-auth:/app/.wetube-auth
+      - ./server.js:/app/server.js
+      - ./public:/app/public
+      - ./views:/app/views
+      - ./src:/app/src
