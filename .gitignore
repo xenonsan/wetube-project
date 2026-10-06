@@ -1,4 +1,5 @@
 node_modules/
+/YouTube.js/
 bak/
 backups/
 .wetube-auth/
