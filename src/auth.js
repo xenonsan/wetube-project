@@ -1,7 +1,7 @@
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-export function createAuthService({ app, Innertube, UniversalCache, authRoot, text, proxied, youtubePromise, memory }) {
+export function createAuthService({ app, Innertube, UniversalCache, authRoot, text, rawImage, proxied, youtubePromise, memory }) {
   // OAuth2 is currently supported by YouTube.js only with the TV InnerTube client.
   // Each browser gets its own signed session id and its own persistent OAuth cache.
   // Never keep one global authenticated YouTube client: that would make every browser
@@ -96,8 +96,8 @@ export function createAuthService({ app, Innertube, UniversalCache, authRoot, te
       const info = await client.account.getInfo();
       const item = info?.contents?.contents?.find(entry => entry?.is_selected) || info?.contents?.contents?.[0];
       if (!item) throw new Error('AccountInfo did not contain an account item');
-      const avatar = Array.isArray(item.account_photo) ? item.account_photo.at(-1)?.url : item.account_photo?.url;
-      const account = { name: text(item.account_name, 'YouTube'), handle: text(item.channel_handle, ''), avatar: proxied(avatar) };
+      const avatar = proxied(rawImage({ account_photo: item.account_photo }));
+      const account = { name: text(item.account_name, 'YouTube'), handle: text(item.channel_handle, ''), avatar };
       authStates.set(sid, { ...getAuthState(sid), account });
       return account;
     } catch (error) {
@@ -142,4 +142,3 @@ export function createAuthService({ app, Innertube, UniversalCache, authRoot, te
     authFlowPromises
   };
 }
-

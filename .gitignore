@@ -1,4 +1,13 @@
 node_modules/
 bak/
+backups/
 .wetube-auth/
-*.backup*
+.env
+.env.*
+!.env.example
+*backup*
+*.bak
+*.old
+*.orig
+*.swp
+*.swo

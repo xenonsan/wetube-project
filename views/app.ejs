@@ -1,47 +1,55 @@
 <!doctype html>
-<html lang="ja" data-theme="dark">
+<html lang="ja" data-theme="device">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
   <title><%= title %> | YouTube</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=2.9.57">
+  <% if (page === 'settings') { %>
+    <link rel="stylesheet" href="/styles/settings-page.css?v=2.9.44">
+  <% } %>
   <% if (page === 'watch') { %>
-    <link rel="stylesheet" href="/watch.css">
+    <link rel="stylesheet" href="/watch.css?v=2.9.49">
   <% } %>
 </head>
-<body data-page="<%= page %>" data-authenticated="<%= authenticated ? 'true' : 'false' %>"<% if (video) { %> data-video-id="<%= video.id %>"<% } %>>
+<body data-page="<%= page %>" data-authenticated="<%= authenticated ? 'true' : 'false' %>"<% if (video) { %> data-video-id="<%= video.id %>"<% } %><% if (page === 'watch' && isLive) { %> data-live="true"<% } %><% if (page === 'watch') { %> data-live-chat-mode="<%= liveChatMode %>"<% } %>>
   <div id="pageProgress" class="page-progress" aria-hidden="true"><span></span></div>
 
   <!-- SVG Sprite Definitions -->
   <svg class="sprite" aria-hidden="true"><defs>
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
-    <symbol id="i-search" viewBox="0 0 24 24"><path d="m20.87 20.17-5.59-5.59A6.956 6.956 0 0 0 17 10a7 7 0 1 0-7 7c1.74 0 3.33-.64 4.55-1.69l5.59 5.59.73-.73zM4 10a6 6 0 1 1 12 0 6 6 0 0 1-12 0z"/></symbol>
-    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10v11h6v-6h4v6h6V10l-8-7-8 7zm15 10h-4v-6H9v6H5v-9.55l7-6.13 7 6.13V20z"/></symbol>
-    <symbol id="i-shorts" viewBox="0 0 24 24"><path d="m10 14.65 5-2.88V17.5l-5-2.85zM8.77 3.5l6.8 1.94-4.04 1.1A3.99 3.99 0 0 0 8.7 11.4l.54 2.02-1.95.52A4 4 0 0 0 8.34 21.8l6.89-1.85A4 4 0 0 0 18.06 15l-.54-2.02 1.95-.52a4 4 0 0 0-1.04-7.86L11.55 2.7a4 4 0 0 0-2.78.8z"/></symbol>
-    <symbol id="i-sub" viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm10-4H4v16h16V4zm-1 15H5V5h14v14z"/></symbol>
-    <symbol id="i-history" viewBox="0 0 24 24"><path d="M14.97 16.95 11 12.98V7h2v5.15l3.38 3.38-1.41 1.42zM13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3z"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm1-7.41 4.2 2.42-1 1.73L11 12.73V6h2v5.59z"/></symbol>
-    <symbol id="i-fire" viewBox="0 0 24 24"><path d="M14.59 2.14c.2 2.02-.65 3.53-2.53 4.55-1.9 1.03-3.01 2.44-3.35 4.25-.16-.52-.23-1.06-.2-1.63-2 1.66-3 3.58-3 5.75A6.5 6.5 0 0 0 12 21.5a6.5 6.5 0 0 0 6.5-6.44c0-3.72-1.3-8.03-3.91-12.92zM12 19.5a4.5 4.5 0 0 1-4.5-4.44c0-1 .28-1.9.85-2.72.42 1.24 1.25 2.1 2.48 2.58-.3-2.88.68-5.01 2.94-6.4.95 2.74 2.73 4.03 2.73 6.54A4.5 4.5 0 0 1 12 19.5z"/></symbol>
-    <symbol id="i-music" viewBox="0 0 24 24"><path d="M12 3v11.55A4 4 0 1 0 14 18V7h6V3h-8z"/></symbol>
-    <symbol id="i-game" viewBox="0 0 24 24"><path d="M17.5 6h-11A4.5 4.5 0 0 0 2 10.5v3A4.5 4.5 0 0 0 6.5 18H8l2-2h4l2 2h1.5a4.5 4.5 0 0 0 4.5-4.5v-3A4.5 4.5 0 0 0 17.5 6zM9 13H7v2H5v-2H3v-2h2V9h2v2h2v2zm7-1.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm3 3a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></symbol>
-    <symbol id="i-news" viewBox="0 0 24 24"><path d="M3 3h15v3h3v15H3V3zm2 16h14V8h-1v9H5v2zm0-4h11V5H5v10zm2-8h7v2H7V7zm0 4h7v2H7v-2z"/></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12.1 2a10 10 0 1 0 9.8 12 8 8 0 0 1-9.8-12zm0 18a8 8 0 0 1-2.56-15.58A10 10 0 0 0 19.58 14 8 8 0 0 1 12.1 20z"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24"><path d="M11 1h2v3h-2V1zm0 19h2v3h-2v-3zM1 11h3v2H1v-2zm19 0h3v2h-3v-2zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42-2.12-2.12zm12.02 12.02 1.42-1.42 2.12 2.12-1.42 1.42-2.12-2.12zM4.22 18.36l2.12-2.12 1.42 1.42-2.12 2.12-1.42-1.42zM16.24 6.34l2.12-2.12 1.42 1.42-2.12 2.12-1.42-1.42zM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></symbol>
-    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></symbol>
-    <symbol id="i-like" viewBox="0 0 24 24"><path d="M17.77 10.78 14.54 9.7 15.5 5a2.5 2.5 0 0 0-4.32-2.14L6 8H2v13h15.12a3 3 0 0 0 2.94-2.41l1.88-7.8-4.17-.01zM5 19H4v-9h1v9zm13.12-.8a1 1 0 0 1-1 .8H7V9.41l5.59-5.59a.5.5 0 0 1 .86.43l-1.32 6.47 7.28 2.43-1.29 5.05z"/></symbol>
-    <symbol id="i-dislike" viewBox="0 0 24 24"><path d="M18 4h1v9h-1V4zm-3.12.8a1 1 0 0 1 1-.8H17v8.59l-5.59 5.59a.5.5 0 0 1-.86-.43l1.32-6.47-7.28-2.43 1.29-5.05h9zM6.23 13.22 9.46 14.3 8.5 19a2.5 2.5 0 0 0 4.32 2.14L18 16h4V3H6.88a3 3 0 0 0-2.94 2.41l-1.88 7.8 4.17.01z"/></symbol>
-    <symbol id="i-share" viewBox="0 0 24 24"><path d="M15 5.63 20.66 12 15 18.37V14h-1c-3.96 0-7.14 1-9.75 3.09 1.84-4.07 5.11-6.4 9.89-7.1l.86-.13V5.63M14 3v6C6.22 10.13 3.11 15.33 2 21c2.78-3.97 6.44-6 12-6v6l8-9-8-9z"/></symbol>
-    <symbol id="i-screen" viewBox="0 0 24 24"><path d="M3 5h18v14H3V5zm2 2v10h14V7H5zm2 2h10v6H7V9z"/></symbol>
-    <symbol id="i-pip" viewBox="0 0 24 24"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/></symbol>
-    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10 20h4c0 1.1-.9 2-2 2s-2-.9-2-2zm10-5.5V11a8 8 0 0 0-7-7.93V2h-2v1.07A8 8 0 0 0 4 11v3.5L2 16v2h20v-2l-2-1.5zm-2 1.5H6V11a6 6 0 0 1 12 0v5z"/></symbol>
-    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M15 17h6v2h-6v-2zm-4 0H3v2h8v-2zm8-6h2v2h-2v-2zm-4 0H3v2h12v-2zm4-6h6v2h-6V5zm-4 0H3v2h12V5z"/></symbol>
-    <symbol id="i-playlist" viewBox="0 0 24 24"><path d="M22 7H2v2h20V7zm0 4H2v2h20v-2zm-8 4H2v2h12v-2zm5.5 0v6l5-3-5-3z"/></symbol>
-    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></symbol>
-    <symbol id="i-user" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></symbol>
-    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></symbol>
-    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 10.5 8.5-7 8.5 7"/><path d="M5.5 9.5v10h5.2v-6h2.6v6h5.2v-10"/></symbol>
+    <symbol id="i-shorts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7.2 6.6 14 4.3c2.9-1 4.5 3.1 1.6 4.2l-7.3 2.7c-3 1.1-2.5 4.1.1 5l6.2 2.2c2.8 1 4.3-3 1.5-4l-6.2-2.3" stroke-width="2.4"/>
+      <path d="m10.6 9.8 4.1 2.2-4.1 2.3z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-sub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11a8.5 8.5 0 1 1 2.1 6.1"/><path d="M3.5 5.5V11h5.5M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 22a7 7 0 0 0 7-7c0-3.1-1.5-5.7-4.2-8.5-.1 2.2-1 3.5-2.3 4.2C13.2 6.4 10.4 3.4 7 2c.4 4.2-.6 6.4-2.1 8.8A7.1 7.1 0 0 0 12.5 22Z"/><path d="M12.5 22a3.5 3.5 0 0 0 3.5-3.5c0-1.5-.7-2.7-2.1-4.2-.2 1.1-.7 1.8-1.5 2.2-.4-1.8-1.3-2.8-2.7-3.7.1 2-.4 3.1-1.2 4.2a3.5 3.5 0 0 0 4 5Z"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8h11a4.5 4.5 0 0 1 4.4 5.5l-1 4a2.5 2.5 0 0 1-4.1 1.3L14 16h-4l-2.8 2.8a2.5 2.5 0 0 1-4.1-1.3l-1-4A4.5 4.5 0 0 1 6.5 8Z"/><path d="M7 11v4m-2-2h4m6-1h.01M18 14h.01"/></symbol>
+    <symbol id="i-news" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 15.2A8.8 8.8 0 0 1 8.8 3.5 9.4 9.4 0 1 0 20.5 15.2Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+    <symbol id="i-like" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm0 0 5-7a3 3 0 0 1 1.8 3.8L13 10h5.8a2 2 0 0 1 2 2.4l-1.5 6a2 2 0 0 1-1.9 1.6H7"/></symbol>
+    <symbol id="i-dislike" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14V4H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3Zm0 0 5 7a3 3 0 0 0 1.8-3.8L13 14h5.8a2 2 0 0 0 2-2.4l-1.5-6A2 2 0 0 0 17.4 4H7"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.5m-7.6 6.9 7.6 4.5"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8m-4-4v4m-2-12 5 2.5-5 2.5z"/></symbol>
+    <symbol id="i-pip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 12h6v5h-6z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.8a1 1 0 0 1 1.5-.9l11 7.2a1.1 1.1 0 0 1 0 1.8l-11 7.2a1 1 0 0 1-1.5-.9z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10m-7 6h4"/><circle cx="8" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="11" cy="18" r="1.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-playlist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 11h11M4 16h7"/><path d="m16 14 5 3-5 3z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2" fill="var(--bg, #0f0f0f)"/><circle cx="15" cy="12" r="2.2" fill="var(--bg, #0f0f0f)"/><circle cx="11" cy="18" r="2.2" fill="var(--bg, #0f0f0f)"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-1.5a7 7 0 0 1 14 0V20z"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></symbol>
   </defs></svg>
   <% const icon = (id, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"></use></svg>`; %>
 
@@ -82,13 +90,14 @@
           <div id="searchSuggestions" class="search-suggestions" hidden></div>
         </div>
         <button class="search-submit" type="submit" aria-label="検索"><%- icon('search') %></button>
+        <button id="mobileSearchClose" class="icon-btn mobile-search-close" type="button" aria-label="検索を閉じる">×</button>
       </form>
     </div>
 
     <!-- Right Controls: Queue, Notifications, Account -->
     <div class="header-right">
-      <button id="queueButton" class="icon-btn" aria-label="再生キュー" title="再生キュー"><%- icon('playlist') %></button>
-      <div class="popover-anchor">
+      <button id="queueButton" class="icon-btn mobile-header-hide" aria-label="再生キュー" title="再生キュー"><%- icon('playlist') %></button>
+      <div class="popover-anchor mobile-header-hide">
         <button id="notificationsButton" class="icon-btn" aria-label="通知" title="通知">
           <%- icon('bell') %>
           <span id="notifBadge" class="notif-badge" hidden></span>
@@ -121,6 +130,7 @@
           <div class="popover-divider"></div>
           <div class="popover-menu-items">
             <a class="popover-item" href="/my-channel"><%- icon('user') %><span>チャンネルを表示</span></a>
+            <a class="popover-item" href="/settings"><%- icon('settings') %><span>設定</span></a>
             <button id="themeMenuTrigger" class="popover-item" type="button">
               <%- icon('moon') %>
               <span>デザイン: <b id="currentThemeLabel">ダーク</b></span>
@@ -140,6 +150,9 @@
           </div>
         </div>
       </div>
+      <button id="mobileSearchOpen" class="icon-btn mobile-search-trigger" type="button" aria-label="検索を開く" title="検索">
+        <%- icon('search') %>
+      </button>
     </div>
   </header>
 
@@ -150,14 +163,10 @@
         <a class="nav-item compact-primary <%= page === 'home' ? 'active' : '' %>" href="/"><%- icon('home') %><span>ホーム</span></a>
         <a class="nav-item compact-primary <%= page === 'shorts' ? 'active' : '' %>" href="/shorts"><%- icon('shorts') %><span>Shorts</span></a>
         <a class="nav-item compact-primary <%= libraryType === 'subscriptions' ? 'active' : '' %>" href="/subscriptions"><%- icon('sub') %><span>登録チャンネル</span></a>
+        <a class="nav-item compact-primary <%= page === 'settings' ? 'active' : '' %>" href="/settings"><%- icon('settings') %><span>設定</span></a>
       </div>
       <hr class="sidebar-open-only">
       <section class="sidebar-section you-section">
-        <a class="sidebar-section-title nav-item compact-primary <%= page === 'channel' ? 'active' : '' %>" href="/my-channel">
-          <%- icon('history') %>
-          <span>あなた</span>
-          <%- icon('chevron-right', 'icon sidebar-chevron') %>
-        </a>
         <div class="sidebar-open-only sidebar-detail-list">
           <a class="nav-item <%= libraryType === 'history' ? 'active' : '' %>" href="/history"><%- icon('history') %><span>履歴</span></a>
           <a class="nav-item <%= page === 'search' && query === '再生リスト' ? 'active' : '' %>" href="/playlists"><%- icon('playlist') %><span>再生リスト</span></a>
@@ -189,6 +198,101 @@
 
   <!-- Main Content Area -->
   <main class="main <%= page === 'watch' ? 'watch-main' : '' %>">
+    <% if (page === 'settings') { %>
+      <section class="settings-page">
+        <header class="settings-page-heading">
+          <h1>設定</h1>
+          <p>WeTubeの再生や表示を自分好みに変更できます。この設定はこのブラウザに保存されます。</p>
+        </header>
+
+        <section class="settings-card" aria-labelledby="settings-playback-title">
+          <div class="settings-card-heading">
+            <h2 id="settings-playback-title">再生</h2>
+            <p>動画を開いたときに使う再生方法や自動再生を設定します。</p>
+          </div>
+          <label class="settings-row" for="settingsDefaultPlayer">
+            <span><b>既定の再生方法</b><small>動画ページを開いたときに最初に使うプレーヤーです。</small></span>
+            <select id="settingsDefaultPlayer" class="settings-select">
+              <option value="edu">Eduプレーヤー</option>
+              <option value="youtube">YouTubeプレーヤー</option>
+              <option value="stream">ストリーム</option>
+            </select>
+          </label>
+          <label class="settings-row" for="settingsAutoplay">
+            <span><b>次の動画を自動再生</b><small>動画の再生終了後、次の関連動画を再生します。</small></span>
+            <input id="settingsAutoplay" class="settings-switch" type="checkbox">
+          </label>
+        </section>
+
+        <section class="settings-card" aria-labelledby="settings-appearance-title">
+          <div class="settings-card-heading">
+            <h2 id="settings-appearance-title">表示</h2>
+            <p>テーマはサイト全体に適用されます。</p>
+          </div>
+          <fieldset class="settings-theme-options">
+            <legend>テーマ</legend>
+            <label><input type="radio" name="settingsThemeSelect" value="device"><span>システム既定</span></label>
+            <label><input type="radio" name="settingsThemeSelect" value="dark"><span>ダーク</span></label>
+            <label><input type="radio" name="settingsThemeSelect" value="light"><span>ライト</span></label>
+          </fieldset>
+          <div class="settings-row" aria-live="polite">
+            <span><b>テーマの反映</b><small>システム既定では端末の外観設定に合わせて自動で切り替わります。</small></span>
+          </div>
+        </section>
+
+        <section class="settings-card" aria-labelledby="settings-playback-detail-title">
+          <div class="settings-card-heading">
+            <h2 id="settings-playback-detail-title">プレーヤーと画面</h2>
+            <p>動画ページや一覧の表示動作を調整します。</p>
+          </div>
+          <label class="settings-row" for="settingsPlaybackSpeed">
+            <span><b>既定の再生速度</b><small>対応するプレーヤーで新しい動画を開いたときに適用します。</small></span>
+            <select id="settingsPlaybackSpeed" class="settings-select">
+              <option value="0.5">0.5 倍</option>
+              <option value="0.75">0.75 倍</option>
+              <option value="1">標準</option>
+              <option value="1.25">1.25 倍</option>
+              <option value="1.5">1.5 倍</option>
+              <option value="1.75">1.75 倍</option>
+              <option value="2">2 倍</option>
+            </select>
+          </label>
+          <label class="settings-row" for="settingsVideoPreviews">
+            <span><b>動画のプレビュー</b><small>一覧のサムネイルにカーソルを合わせたとき、動画プレビューを再生します。</small></span>
+            <input id="settingsVideoPreviews" class="settings-switch" type="checkbox">
+          </label>
+          <label class="settings-row" for="settingsCompactGrid">
+            <span><b>一覧をコンパクトに表示</b><small>ホームと検索結果に一度に表示する動画を増やします。</small></span>
+            <input id="settingsCompactGrid" class="settings-switch" type="checkbox">
+          </label>
+          <label class="settings-row" for="settingsReduceMotion">
+            <span><b>アニメーションを減らす</b><small>画面切り替えやホバー時の動きを抑えます。</small></span>
+            <input id="settingsReduceMotion" class="settings-switch" type="checkbox">
+          </label>
+        </section>
+
+        <section class="settings-card" aria-labelledby="settings-data-title">
+          <div class="settings-card-heading">
+            <h2 id="settings-data-title">このブラウザのデータ</h2>
+            <p>削除してもYouTubeアカウント上の履歴やデータには影響しません。</p>
+          </div>
+          <div class="settings-row settings-data-row">
+            <span><b>検索履歴</b><small>このブラウザに保存された検索語句を削除します。</small></span>
+            <button id="clearSearchHistory" class="settings-danger-button" type="button">削除</button>
+          </div>
+          <div class="settings-row settings-data-row">
+            <span><b>視聴履歴</b><small>ログアウト中にこのブラウザへ保存された履歴を削除します。</small></span>
+            <button id="clearLocalHistory" class="settings-danger-button" type="button">削除</button>
+          </div>
+          <div class="settings-row settings-data-row">
+            <span><b>再生キュー</b><small>このブラウザの再生待ちリストを空にします。</small></span>
+            <button id="clearPlaybackQueue" class="settings-danger-button" type="button">削除</button>
+          </div>
+        </section>
+        <p id="settingsSaveStatus" class="settings-save-status" role="status" aria-live="polite"></p>
+      </section>
+    <% } %>
+
     <% if (page === 'home' || page === 'search') { %>
       <% if (page === 'home') { %>
         <!-- Category Filter Chips with Horizontal Scroll Buttons -->
@@ -240,8 +344,38 @@
         </section>
       <% } %>
 
+      <% const standardVideos = page === 'search' ? videos.filter(v => !v.isShort) : videos; %>
+      <% const searchShorts = page === 'search' ? videos.filter(v => v.isShort) : []; %>
+      <% if (searchShorts.length) { %>
+        <section class="search-shorts-shelf" aria-label="Shorts検索結果">
+          <div class="search-shorts-heading">
+            <h2><%- icon('shorts') %> Shorts</h2>
+          </div>
+          <div class="search-shorts-row">
+            <% searchShorts.forEach(v => { %>
+              <article class="search-short-card" data-video-id="<%= v.id %>">
+                <a class="search-short-thumb" href="/shorts/<%= encodeURIComponent(v.id) %>">
+                  <img src="<%= v.thumbnail %>" alt="" loading="lazy" data-video-fallback="<%= v.id %>">
+                  <span class="search-short-badge"><%- icon('shorts') %>Shorts</span>
+                </a>
+                <div class="search-short-info">
+                  <a class="video-title" href="/shorts/<%= encodeURIComponent(v.id) %>"><%= v.title %></a>
+                  <% if (v.authorId) { %>
+                    <a class="channel-name-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><%= v.author %></a>
+                  <% } else { %>
+                    <span><%= v.author || 'チャンネル不明' %></span>
+                  <% } %>
+                  <span><%= [v.views, v.published].filter(Boolean).join('・') %></span>
+                </div>
+                <button class="more-btn" aria-label="その他のアクション" data-video-id="<%= v.id %>" data-title="<%= v.title %>"><%- icon('more') %></button>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
       <!-- Video Grid or Search Results -->
-      <section id="<%= page === 'home' ? 'recommendationGrid' : 'searchResults' %>" class="<%= page === 'search' ? 'search-results' : 'video-grid' %>">
+      <section id="<%= page === 'home' ? 'recommendationGrid' : 'searchResults' %>" class="<%= page === 'search' ? 'search-results' : 'video-grid' %>"<% if (page === 'search' && feedToken) { %> data-feed-token="<%= feedToken %>" data-feed-kind="search"<% } %>>
         <% if (page === 'home' && !videos.length) { %>
           <% for (let i = 0; i < 8; i++) { %>
             <article class="video-card recommend-skeleton-card" aria-hidden="true">
@@ -257,37 +391,31 @@
             </article>
           <% } %>
         <% } else { %>
-          <% videos.forEach(v => { %>
-            <article class="video-card <%= v.isShort ? 'short-card' : '' %>" data-video-id="<%= v.id %>">
-              <a class="thumb" href="<%= v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>">
-                <img src="<%= v.thumbnail %>" alt="" loading="lazy">
-                <% if (v.isShort) { %>
-                  <span class="short-badge"><%- icon('shorts') %>Shorts</span>
-                <% } else if (v.duration) { %>
-                  <span class="duration"><%= v.duration %></span>
-                <% } %>
-              </a>
-              <div class="card-info">
-                <% if (v.authorThumbnail) { %>
-                  <img class="channel-avatar" src="<%= v.authorThumbnail %>" alt="">
-                <% } else { %>
-                  <span class="channel-avatar fallback"><%= (v.author || 'Y').slice(0, 1) %></span>
-                <% } %>
-                <div class="card-copy">
-                  <a class="video-title" href="<%= v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>"><%= v.title %></a>
-                  <% if (v.authorId) { %>
-                    <a class="channel-name-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><%= v.author %></a>
+          <% standardVideos.forEach(v => { %>
+              <article class="video-card" data-video-id="<%= v.id %>">
+                <a class="thumb" href="/watch?v=<%= v.id %>">
+                  <img src="<%= v.thumbnail %>" alt="" loading="lazy" data-video-fallback="<%= v.id %>">
+                  <% if (v.duration) { %><span class="duration"><%= v.duration %></span><% } %>
+                </a>
+                <div class="card-info">
+                  <% if (v.authorThumbnail) { %>
+                    <img class="channel-avatar" src="<%= v.authorThumbnail %>" alt="">
                   <% } else { %>
-                    <span><%= v.author %></span>
+                    <span class="channel-avatar fallback"><%= (v.author || 'Y').slice(0, 1) %></span>
                   <% } %>
-                  <span><%= [v.views, v.published].filter(Boolean).join('・') %></span>
-                  <% if (page === 'search' && v.description) { %>
-                    <p><%= v.description %></p>
-                  <% } %>
+                  <div class="card-copy">
+                    <a class="video-title" href="/watch?v=<%= v.id %>"><%= v.title %></a>
+                    <% if (v.authorId) { %>
+                      <a class="channel-name-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><%= v.author %></a>
+                    <% } else { %>
+                      <span><%= v.author || 'チャンネル不明' %></span>
+                    <% } %>
+                    <span><%= [v.views, v.published].filter(Boolean).join('・') %></span>
+                    <% if (page === 'search' && v.description) { %><p><%= v.description %></p><% } %>
+                  </div>
+                  <button class="more-btn" aria-label="その他のアクション" data-video-id="<%= v.id %>" data-title="<%= v.title %>"><%- icon('more') %></button>
                 </div>
-                <button class="more-btn" aria-label="その他のアクション" data-video-id="<%= v.id %>" data-title="<%= v.title %>"><%- icon('more') %></button>
-              </div>
-            </article>
+              </article>
           <% }) %>
         <% } %>
       </section>
@@ -305,11 +433,11 @@
               <% shorts.forEach(v => { %>
                 <article class="home-short-card">
                   <a class="home-short-thumb" href="/shorts/<%= v.id %>">
-                    <img src="<%= v.thumbnail %>" alt="" loading="lazy">
+                    <img src="<%= v.thumbnail %>" alt="" loading="lazy" data-video-fallback="<%= v.id %>">
                     <span class="home-short-play"><%- icon('shorts') %></span>
                   </a>
                   <div class="home-short-copy">
-                    <a href="/shorts/<%= v.id %>"><%= v.title %></a>
+                    <a class="home-short-title" href="/shorts/<%= v.id %>"><%= v.title || 'ショート動画' %></a>
                     <div class="home-short-channel">
                       <% if (v.authorThumbnail) { %>
                         <img src="<%= v.authorThumbnail %>" alt="">
@@ -339,8 +467,7 @@
         <% videos.forEach((short, index) => { %>
           <article class="short-reel" data-short-id="<%= short.id %>" data-short-index="<%= index %>">
             <div class="short-shell">
-              <iframe class="short-player" src="<%= index === 0 ? short.eduUrl : '' %>" data-src="<%= short.eduUrl %>" title="<%= short.title %>" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-              <div class="short-scroll-capture" aria-hidden="true"></div>
+              <iframe class="short-player"<% if (index === 0) { %> src="<%= short.eduUrl %>"<% } %> data-src="<%= short.eduUrl %>" title="<%= short.title %>" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
               <div class="short-overlay">
                 <a href="<%= short.authorId ? '/channel/' + short.authorId : '#' %>" class="short-author">
                   <% if (short.authorThumbnail) { %>
@@ -354,13 +481,10 @@
               </div>
             </div>
             <div class="short-actions">
-              <button class="short-like" type="button"><%- icon('like') %><span>高評価</span></button>
-              <button class="short-comment" type="button"><%- icon('news') %><span>コメント</span></button>
-              <button class="short-share" type="button"><%- icon('share') %><span>共有</span></button>
-              <button class="short-save" type="button"><%- icon('clock') %><span>保存</span></button>
-              <button class="short-mute" type="button" aria-label="ミュート"><%- icon('music') %><span>音声</span></button>
-              <button class="short-clear" type="button" aria-label="表示を隠す"><%- icon('screen') %><span>クリア</span></button>
-              <a href="/watch?v=<%= short.id %>"><%- icon('screen') %><span>通常再生</span></a>
+              <button class="short-like" type="button" aria-label="高評価"><%- icon('like') %><span>高評価</span></button>
+              <button class="short-comment" type="button" aria-label="コメント"><%- icon('news') %><span>コメント</span></button>
+              <button class="short-share" type="button" aria-label="共有"><%- icon('share') %><span>共有</span></button>
+              <a href="/watch?v=<%= short.id %>" aria-label="通常再生"><%- icon('screen') %><span>通常再生</span></a>
             </div>
           </article>
         <% }) %>
@@ -369,6 +493,7 @@
         <button id="previousShort" aria-label="前のショート">↑</button>
         <button id="nextShort" aria-label="次のショート">↓</button>
       </div>
+      <button id="shortCommentsScrim" class="short-comments-scrim" type="button" aria-label="コメントを閉じる" hidden></button>
       <aside id="shortComments" class="short-comments" aria-hidden="true">
         <header>
           <h2>コメント</h2>
@@ -394,6 +519,7 @@
           <div id="playerContainer" class="player-container">
             <div class="player-shell">
               <iframe id="player" src="<%= playerMode === 'youtube' ? youtubeUrl : eduUrl %>" title="<%= video.title %>" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+              <video id="streamPlayer" controls playsinline preload="metadata" hidden></video>
               <!-- Autoplay Countdown Overlay -->
               <div id="autoplayOverlay" class="autoplay-overlay" hidden>
                 <div class="autoplay-countdown-box">
@@ -450,21 +576,38 @@
                 </button>
               </div>
 
-              <button id="shareButton" class="pill" title="共有"><%- icon('share') %><span>共有</span></button>
-              <button id="saveButton" class="pill" title="保存"><%- icon('clock') %><span>保存</span></button>
-              <button id="pipButton" class="pill" title="ミニプレーヤー (i)"><%- icon('pip') %></button>
-              <button id="theaterButton" class="pill" title="シアターモード (t)"><%- icon('screen') %></button>
-              <button id="playerButton" class="pill" data-mode="<%= playerMode %>" data-edu="<%= eduUrl %>" data-youtube="<%= youtubeUrl %>" data-edu-sources='<%- JSON.stringify(eduSources || []) %>' title="Edu再生方式を切り替え">
-                <span><%= playerMode === 'edu' ? 'Edu' : '通常' %></span>
-              </button>
-              <button id="streamInfoButton" class="pill icon-only" title="ストリーム情報"><%- icon('settings') %></button>
+              <button id="shareButton" class="pill icon-only watch-icon-button" title="共有" aria-label="共有"><%- icon('share') %></button>
+              <button id="saveButton" class="pill icon-only watch-icon-button" title="保存" aria-label="保存"><%- icon('clock') %></button>
+              <label class="player-mode-control">
+                <select id="playerModeSelect" class="player-mode-select" data-mode="<%= playerMode === 'youtube' ? 'youtube' : 'edu:0' %>" data-edu="<%= eduUrl %>" data-youtube="<%= youtubeUrl %>" data-edu-sources='<%- JSON.stringify(eduSources || []) %>' aria-label="再生方法">
+                  <option value="youtube" <%= playerMode === 'youtube' ? 'selected' : '' %>>YouTube</option>
+                  <% (eduSources || []).forEach((source, index) => { %>
+                    <option value="edu:<%= index %>" <%= playerMode !== 'youtube' && index === 0 ? 'selected' : '' %>>Edu <%= index + 1 %></option>
+                  <% }); %>
+                  <% if (!(eduSources || []).length) { %>
+                    <option value="edu:0" <%= playerMode !== 'youtube' ? 'selected' : '' %>>Edu</option>
+                  <% } %>
+                  <option value="stream">ストリーム</option>
+                </select>
+              </label>
+              <details class="watch-more-controls">
+                <summary class="pill icon-only watch-icon-button" aria-label="その他のプレーヤー操作" title="その他">
+                  <%- icon('more') %>
+                </summary>
+                <div class="watch-more-menu">
+                  <button id="pipButton" class="watch-menu-action" type="button"><%- icon('pip') %><span>ミニプレーヤー</span></button>
+                  <button id="theaterButton" class="watch-menu-action" type="button"><%- icon('screen') %><span>シアターモード</span></button>
+                  <button id="streamInfoButton" class="watch-menu-action" type="button"><%- icon('settings') %><span>ストリーム情報</span></button>
+                </div>
+              </details>
             </div>
           </div>
 
           <!-- Description Box (Expandable Card) -->
-          <div id="descriptionBox" class="description-box">
+          <div id="descriptionBox" class="description-box" tabindex="0" aria-expanded="false">
             <div class="description-meta">
-              <b><%= [video.views, video.published].filter(Boolean).join('　') %></b>
+              <% if (video.views) { %><b><%= video.views %></b><% } %>
+              <% if (video.published) { %><span><%= /前$| ago$/i.test(video.published) ? `${video.published.replace(/\s+/g, '')}に投稿` : video.published %></span><% } %>
             </div>
             <div id="descriptionText" class="description-text">
               <p><%= video.description || '説明はありません。' %></p>
@@ -472,16 +615,15 @@
             <button id="descriptionToggle" class="description-toggle" type="button">もっと見る</button>
           </div>
 
-          <!-- Transcript Panel -->
-          <details id="transcriptPanel" class="panel">
-            <summary>文字起こしを表示</summary>
-            <div id="transcriptList" class="panel-body muted">開くと読み込みます</div>
-          </details>
-
           <!-- Comments Section (Open by default on Desktop) -->
-          <section class="comments-section">
+          <button id="mobileCommentsOpen" class="mobile-comments-open" type="button" aria-expanded="false" aria-controls="commentsSection">
+            <%- icon('news') %><span>コメントを表示</span><%- icon('chevron-right', 'icon') %>
+          </button>
+          <button id="mobileCommentsScrim" class="mobile-comments-scrim" type="button" aria-label="コメントを閉じる" hidden></button>
+          <section id="commentsSection" class="comments-section">
             <div class="comments-header">
               <h2 id="commentsCountHeader">コメント</h2>
+              <button id="mobileCommentsClose" class="mobile-comments-close" type="button" aria-label="コメントを閉じる">閉じる</button>
               <div class="comments-sort-wrap">
                 <button id="commentsSortBtn" class="text-btn comments-sort-btn" type="button">
                   <%- icon('filter') %>
@@ -516,7 +658,34 @@
         </section>
 
         <!-- Right Side: Related Videos & Autoplay -->
-        <aside class="related">
+        <aside class="related"<% if (feedToken) { %> data-feed-token="<%= feedToken %>" data-feed-kind="related"<% } %>>
+          <% if (isLive || liveChatReplayAvailable) { %>
+            <% if (liveChatReplayAvailable && !isLive) { %>
+              <button id="liveChatReplayToggle" class="live-chat-replay-toggle" type="button" aria-expanded="false">チャットのリプレイを表示</button>
+            <% } %>
+            <section id="liveChatPanel" class="live-chat-panel" aria-label="<%= isLive ? 'ライブチャット' : 'チャットのリプレイ' %>"<% if (!isLive) { %> hidden<% } %>>
+              <header class="live-chat-header">
+                <h2><%= isLive ? 'ライブチャット' : 'チャットのリプレイ' %></h2>
+                <div class="live-chat-tools">
+                  <span id="liveChatStatus" class="live-chat-status">接続中…</span>
+                  <% if (liveChatAvailable) { %>
+                    <label class="live-chat-filter-label" for="liveChatFilter">表示</label>
+                    <select id="liveChatFilter" aria-label="チャット表示フィルター">
+                      <option value="TOP_CHAT">トップチャット</option>
+                      <option value="LIVE_CHAT">すべてのチャット</option>
+                    </select>
+                  <% } %>
+                </div>
+              </header>
+              <% if (liveChatAvailable) { %>
+                <ol id="liveChatMessages" class="live-chat-messages" aria-live="polite" aria-relevant="additions text">
+                  <li class="live-chat-placeholder">チャットを読み込んでいます…</li>
+                </ol>
+              <% } else { %>
+                <div class="live-chat-placeholder">この配信ではライブチャットを利用できません。</div>
+              <% } %>
+            </section>
+          <% } %>
           <div class="related-chips">
             <span class="chip selected">すべて</span>
             <div class="autoplay-toggle-wrap">
@@ -531,11 +700,14 @@
           <div class="related-list">
             <% videos.forEach(v => { %>
               <div class="related-card-wrap">
-                <a class="related-card" href="/watch?v=<%= v.id %>" data-video-id="<%= v.id %>">
+                <a class="related-card" href="<%= v.isShort ? '/shorts/' + encodeURIComponent(v.id) : '/watch?v=' + v.id %>" data-video-id="<%= v.id %>">
                   <div class="related-thumb">
                     <img src="<%= v.thumbnail %>" alt="" loading="lazy">
                     <% if (v.duration) { %>
                       <span class="duration"><%= v.duration %></span>
+                    <% } %>
+                    <% if (v.isShort) { %>
+                      <span class="shorts-video-badge">Shorts</span>
                     <% } %>
                   </div>
                   <div class="related-info">
@@ -554,9 +726,10 @@
       <!-- Mini Player Floater -->
       <div id="miniPlayer" class="mini-player" hidden>
         <div class="mini-player-header">
-          <span id="miniPlayerTitle" class="mini-player-title"><%= video.title %></span>
+          <button id="miniPlayerTitle" class="mini-player-title" type="button" title="動画ページに戻る"><%= video.title %></button>
           <div class="mini-player-actions">
-            <button id="miniPlayerExpand" title="全画面/展開"><%- icon('screen') %></button>
+            <button id="miniPlayerPlayPause" title="一時停止" aria-label="一時停止"><%- icon('pause') %></button>
+            <button id="miniPlayerExpand" title="通常プレイヤーに戻る"><%- icon('screen') %></button>
             <button id="miniPlayerClose" title="閉じる">×</button>
           </div>
         </div>
@@ -805,7 +978,7 @@
     <a href="/" class="bottom-item <%= page === 'home' ? 'active' : '' %>"><%- icon("home") %><span>ホーム</span></a>
     <a href="/shorts" class="bottom-item <%= page === 'shorts' ? 'active' : '' %>"><%- icon("shorts") %><span>Shorts</span></a>
     <a href="/subscriptions" class="bottom-item <%= libraryType === 'subscriptions' ? 'active' : '' %>"><%- icon("sub") %><span>登録</span></a>
-    <a href="/history" id="mobileHistory" class="bottom-item <%= libraryType === 'history' || page === 'channel' ? 'active' : '' %>"><%- icon("user") %><span>あなた</span></a>
+    <a href="/history" id="mobileHistory" class="bottom-item <%= libraryType === 'history' || page === 'channel' ? 'active' : '' %>"><%- icon("history") %><span>履歴</span></a>
   </nav>
 
   <!-- Card Action Dropdown Menu (Context Menu) -->
@@ -820,9 +993,16 @@
   <div id="streamInfoDialog" class="modal-panel stream-info-dialog" hidden>
     <div>
       <button class="modal-close" aria-label="閉じる">×</button>
-      <h2>ストリーム情報</h2>
-      <p class="stream-info-note">利用可能な画質・音声形式を表示します。</p>
+      <div class="stream-dialog-head">
+        <span class="stream-dialog-icon">↓</span>
+        <div>
+          <h2>動画をダウンロード</h2>
+          <p>利用可能な画質・形式を選択してください。</p>
+        </div>
+      </div>
+      <div id="streamVideoTitle" class="stream-video-title" hidden></div>
       <div id="streamInfoList" class="stream-info-list"><p class="muted">読み込み中…</p></div>
+      <p class="stream-dialog-footnote">※ ダウンロードURLは一時的なものです。必要な場合は再取得してください。</p>
     </div>
   </div>
 
@@ -855,14 +1035,30 @@
       <button class="modal-close" aria-label="閉じる">×</button>
       <div id="authSignedOut">
         <h2>YouTubeアカウントでログイン</h2>
-        <p>テレビ認証を使ってログインすると、あなたのアカウントの登録チャンネルやおすすめを同期できます。</p>
+        <p>テレビ認証を使ってログインすると、あなたのアカウントの再生履歴、登録チャンネル、おすすめを同期できます。</p>
         <button id="startAuthButton" class="auth-primary">テレビ認証を開始</button>
       </div>
-      <div id="authPending" hidden>
-        <h2>別の端末で認証</h2>
-        <p>次のリンクを開き、表示されたコードを入力してください。</p>
-        <a id="authVerificationLink" class="auth-link" href="https://www.youtube.com/activate" target="_blank" rel="noopener noreferrer">認証ページを開く</a>
-        <button id="copyAuthCode" class="auth-code" type="button" title="クリックしてコピー"></button>
+      <div id="authPending" class="auth-state" hidden>
+        <div class="auth-hero">
+          <span class="auth-hero-icon">✓</span>
+          <div>
+            <h2>テレビでログイン</h2>
+            <p>スマートフォンやPCでYouTubeを開いて、下のコードを入力してください。</p>
+          </div>
+        </div>
+        <div class="auth-steps">
+          <div><b>1</b><span>認証ページを開く</span></div>
+          <div><b>2</b><span>表示されたコードを入力</span></div>
+          <div><b>3</b><span>ログイン完了を待つ</span></div>
+        </div>
+        <a id="authVerificationLink" class="auth-link" href="https://www.youtube.com/activate" target="_blank" rel="noopener noreferrer">
+          <span>認証ページを開く</span><b>↗</b>
+        </a>
+        <div class="auth-code-wrap">
+          <span class="auth-code-label">認証コード</span>
+          <button id="copyAuthCode" class="auth-code" type="button" title="クリックしてコピー" aria-label="認証コードをコピー"></button>
+          <small>コードをクリックするとコピーできます</small>
+        </div>
         <p id="authCountdown" class="auth-muted">認証を待っています…</p>
       </div>
       <div id="authSignedIn" hidden>
@@ -928,6 +1124,22 @@
 
   <!-- Load YouTube Iframe API for Rich Player Controls -->
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=2.9.55" defer></script>
+  <script src="/scripts/app-theme.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-header.js?v=2.9.48" defer></script>
+  <script src="/scripts/app-card-actions.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-watch.js?v=2.9.49" defer></script>
+  <script src="/scripts/app-recommendations.js?v=2.9.59" defer></script>
+  <script src="/scripts/app-shorts.js?v=2.9.52" defer></script>
+  <script src="/scripts/app-library.js?v=2.9.43" defer></script>
+  <script src="/scripts/app-sidebar.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-auth.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-progress.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-queue.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-keyboard.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-channel.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-library-controls.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-feed-pagination.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-settings.js?v=2.9.55" defer></script>
 </body>
 </html>
