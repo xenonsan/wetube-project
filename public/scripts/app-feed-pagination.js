@@ -1,11 +1,44 @@
 (() => {
+  const relatedRoot = document.querySelector('.related');
+  const hydrateRelatedDurations = cards => {
+    const missing = cards.filter(card => card.querySelector('.related-thumb') && !card.querySelector('.related-thumb .duration'));
+    const ids = [...new Set(missing.map(card => card.dataset.videoId).filter(id => /^[\w-]{11}$/.test(id || '')))];
+    if (!ids.length) return;
+    fetch(`/api/videos?ids=${encodeURIComponent(ids.join(','))}`, { cache: 'no-store' })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || '関連動画の再生時間を取得できませんでした。');
+        const durations = new Map((result.videos || []).map(video => [video.id, video.duration]));
+        for (const card of missing) {
+          const duration = durations.get(card.dataset.videoId);
+          const thumb = card.querySelector('.related-thumb');
+          if (duration && thumb && !thumb.querySelector('.duration')) {
+            const badge = document.createElement('span');
+            badge.className = 'duration';
+            badge.textContent = duration;
+            thumb.append(badge);
+          }
+        }
+      })
+      .catch(error => console.warn('Hydrate related video durations:', error?.message || error));
+  };
+  if (relatedRoot) {
+    hydrateRelatedDurations(Array.from(relatedRoot.querySelectorAll('.related-card-wrap')));
+  }
+
   const root = document.querySelector('[data-feed-token]');
   if (!root) return;
 
   const token = root.dataset.feedToken;
   const kind = root.dataset.feedKind;
   const list = kind === 'related' ? root.querySelector('.related-list') : root;
-  if (!token || !list) return;
+  if (!list) return;
+  const scrollRoot = kind === 'related' &&
+    document.body.classList.contains('watch-independent-scroll') &&
+    !document.body.classList.contains('theater') &&
+    window.matchMedia('(min-width: 901px)').matches
+    ? root
+    : null;
 
   const existingCards = kind === 'search'
     ? document.querySelectorAll('#searchResults [data-video-id], .search-shorts-shelf [data-video-id]')
@@ -129,6 +162,7 @@
   let loading = false;
   let hasMore = true;
   let sentinelIntersecting = false;
+  let emptyBatches = 0;
   const loadMore = async () => {
     if (loading || !hasMore) return;
     loading = true;
@@ -150,13 +184,21 @@
         list.append(card);
         added++;
       }
+      if (kind === 'related' && added) {
+        hydrateRelatedDurations(Array.from(list.querySelectorAll('.related-card-wrap')).slice(-added));
+      }
       hasMore = Boolean(result.hasMore);
+      emptyBatches = added ? 0 : emptyBatches + 1;
       controls.hidden = !hasMore;
-      status.textContent = hasMore && added === 0 ? '続きの動画はありません。' : '';
-      if (added > 0 && hasMore && observer) {
+      status.textContent = hasMore && added === 0 ? '動画を読み込めませんでした。スクロールして再試行してください。' : '';
+      const canRetryEmptyRelatedBatch = kind === 'related' && emptyBatches < 3;
+      if (hasMore && (added > 0 || canRetryEmptyRelatedBatch) && observer) {
         observer.unobserve(controls);
         sentinelIntersecting = false;
         requestAnimationFrame(() => observer.observe(controls));
+      }
+      if (kind === 'related' && hasMore && (added > 0 || canRetryEmptyRelatedBatch)) {
+        requestAnimationFrame(checkRelatedScrollPosition);
       }
     } catch (error) {
       status.textContent = error.message || '動画を追加で読み込めませんでした。';
@@ -165,25 +207,61 @@
     }
   };
   let observer;
+  let relatedScrollCheckScheduled = false;
+  const nearBottom = element => element.scrollTop + element.clientHeight >= element.scrollHeight - 700;
+  const checkRelatedScrollPosition = () => {
+    if (relatedScrollCheckScheduled || loading || !hasMore) return;
+    relatedScrollCheckScheduled = true;
+    requestAnimationFrame(() => {
+      relatedScrollCheckScheduled = false;
+      const primary = document.querySelector('.watch-primary');
+      if (scrollRoot && nearBottom(scrollRoot)) {
+        loadMore();
+      } else if (scrollRoot && primary && nearBottom(primary)) {
+        loadMore();
+      } else if (!scrollRoot && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 700) {
+        loadMore();
+      }
+    });
+  };
+  const checkPosition = () => {
+    const bounds = controls.getBoundingClientRect();
+    if (scrollRoot) {
+      const rootBounds = scrollRoot.getBoundingClientRect();
+      if (bounds.top < rootBounds.bottom + 500 && bounds.bottom > rootBounds.top - 500) loadMore();
+      return;
+    }
+    if (bounds.top < window.innerHeight + 500) loadMore();
+  };
   if ('IntersectionObserver' in window) {
     observer = new IntersectionObserver(entries => {
       const isIntersecting = entries.some(entry => entry.isIntersecting);
       if (isIntersecting && !sentinelIntersecting) loadMore();
       sentinelIntersecting = isIntersecting;
-    }, { rootMargin: '500px 0px' });
+    }, { root: scrollRoot, rootMargin: '500px 0px' });
     observer.observe(controls);
   } else {
     let scheduled = false;
-    const checkPosition = () => {
+    const schedulePositionCheck = () => {
       if (scheduled) return;
       scheduled = true;
       requestAnimationFrame(() => {
         scheduled = false;
-        if (controls.getBoundingClientRect().top < window.innerHeight + 500) loadMore();
+        checkPosition();
       });
     };
-    window.addEventListener('scroll', checkPosition, { passive: true });
-    window.addEventListener('resize', checkPosition, { passive: true });
-    checkPosition();
+    (scrollRoot || window).addEventListener('scroll', schedulePositionCheck, { passive: true });
+    window.addEventListener('resize', schedulePositionCheck, { passive: true });
+    schedulePositionCheck();
+  }
+  if (kind === 'related' && !scrollRoot) {
+    window.addEventListener('scroll', checkRelatedScrollPosition, { passive: true, capture: true });
+    window.addEventListener('resize', checkRelatedScrollPosition, { passive: true });
+    checkRelatedScrollPosition();
+  } else if (kind === 'related' && scrollRoot) {
+    const primary = document.querySelector('.watch-primary');
+    scrollRoot.addEventListener('scroll', checkRelatedScrollPosition, { passive: true });
+    primary?.addEventListener('scroll', checkRelatedScrollPosition, { passive: true });
+    window.addEventListener('scroll', checkRelatedScrollPosition, { passive: true, capture: true });
   }
 })();

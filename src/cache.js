@@ -16,15 +16,29 @@ const EDU_PARAM_SOURCES = [
 const EDU_FALLBACK = '?autoplay=1&mute=0&controls=1&playsinline=1&rel=0';
 let eduCache = { params: EDU_FALLBACK, sources: [], expires: 0 };
 
+const MAX_CACHE_ENTRIES = 120;
+
+function pruneMemoryCache(now = Date.now()) {
+  for (const [key, entry] of memory) {
+    if (entry.expires <= now) memory.delete(key);
+  }
+  while (memory.size > MAX_CACHE_ENTRIES) {
+    memory.delete(memory.keys().next().value);
+  }
+}
+
 function cached(key, ttl, loader) {
+  const now = Date.now();
   const hit = memory.get(key);
-  if (hit?.expires > Date.now()) return hit.value;
+  if (hit?.expires > now) return hit.value;
+  if (hit) memory.delete(key);
+  pruneMemoryCache(now);
   const value = Promise.resolve().then(loader).catch(error => {
     memory.delete(key);
     throw error;
   });
-  memory.set(key, { value, expires: Date.now() + ttl });
-  if (memory.size > 500) memory.delete(memory.keys().next().value);
+  memory.set(key, { value, expires: now + ttl });
+  pruneMemoryCache(now);
   return value;
 }
 

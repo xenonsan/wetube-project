@@ -228,11 +228,19 @@ const normalizeVideo = item => {
     endpoint?.payload?.browseId || '';
   const viewText = lineText.find(value => /回視聴|視聴回数|views?/i.test(value)) || lineText[1] || '';
   const publishedText = lineText.find(value => /前| ago|配信|公開|premiered|streamed/i.test(value)) || lineText[2] || '';
+  const rawDuration = item.duration?.text || item.duration?.simple_text || item.duration?.simpleText ||
+    item.length_text || item.lengthText || item.duration_seconds_text ||
+    item.thumbnail_overlays?.find(overlay => /TimeStatus/i.test(String(overlay?.type || overlay?.constructor?.type || '')))?.text ||
+    item.duration;
+  const durationSeconds = Number(item.duration?.seconds ?? item.duration_seconds ?? item.durationSeconds);
+  const duration = text(rawDuration, '') || (Number.isFinite(durationSeconds) && durationSeconds > 0
+    ? `${Math.floor(durationSeconds / 60)}:${String(Math.floor(durationSeconds % 60)).padStart(2, '0')}`
+    : '');
   return {
     id: String(id), title, isShort, author: authorName,
     authorId, authorThumbnail: proxied(rawImage(author) || lockupAvatar),
     thumbnail: videoThumbnail(item, id),
-    duration: text(item.duration?.text || item.length_text || item.duration, ''),
+    duration,
     views: formatViewCount(item.short_view_count || item.view_count || viewText), published: text(item.published || publishedText, ''), description: text(item.description_snippet || item.description, '')
   };
 };

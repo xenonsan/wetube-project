@@ -624,6 +624,8 @@
     iframe.hidden = false;
     if (mode === 'youtube') {
       iframe.src = playerModeSelect.dataset.youtube;
+    } else if (mode === 'nocookie') {
+      iframe.src = playerModeSelect.dataset.nocookie;
     } else {
       const index = Math.max(0, Number(mode.split(':')[1]) || 0);
       iframe.src = eduSources[index]?.url || playerModeSelect.dataset.edu;

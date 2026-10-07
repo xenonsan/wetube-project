@@ -452,6 +452,41 @@ img.image-unavailable { object-fit: contain; }
   overflow: hidden;
 }
 .channel-short-card span { color: var(--muted); font-size: 1.2rem; }
+.channel-video-card-info {
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 8px;
+}
+.channel-video-card-info .card-copy {
+  grid-column: 1;
+}
+.channel-short-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 190px));
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 28px;
+}
+.channel-short-card .channel-short-thumb {
+  aspect-ratio: 9/16;
+  border-radius: 12px;
+}
+.channel-short-card .channel-short-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.channel-short-info {
+  align-items: start;
+  padding-top: 8px;
+}
+.channel-short-info .video-title {
+  -webkit-line-clamp: 2;
+  font-size: 1.4rem;
+  line-height: 1.9rem;
+}
+.channel-short-info .more-btn {
+  grid-column: 2;
+  grid-row: 1;
+}
 .channel-empty {
   padding: 64px 16px;
   text-align: center;

@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
   <title><%= title %> | YouTube</title>
-  <link rel="stylesheet" href="/style.css?v=2.9.57">
+  <link id="siteFavicon" rel="icon" type="image/png" referrerpolicy="no-referrer" href="/images/YouTube-Logo-Vector.png">
+  <link rel="stylesheet" href="/style.css?v=2.9.58">
   <% if (page === 'settings') { %>
-    <link rel="stylesheet" href="/styles/settings-page.css?v=2.9.44">
+    <link rel="stylesheet" href="/styles/settings-page.css?v=2.9.48">
   <% } %>
   <% if (page === 'watch') { %>
-    <link rel="stylesheet" href="/watch.css?v=2.9.49">
+    <link rel="stylesheet" href="/watch.css?v=2.9.51">
   <% } %>
 </head>
 <body data-page="<%= page %>" data-authenticated="<%= authenticated ? 'true' : 'false' %>"<% if (video) { %> data-video-id="<%= video.id %>"<% } %><% if (page === 'watch' && isLive) { %> data-live="true"<% } %><% if (page === 'watch') { %> data-live-chat-mode="<%= liveChatMode %>"<% } %>>
@@ -215,6 +216,7 @@
             <select id="settingsDefaultPlayer" class="settings-select">
               <option value="edu">Eduプレーヤー</option>
               <option value="youtube">YouTubeプレーヤー</option>
+              <option value="nocookie">nocookie再生</option>
               <option value="stream">ストリーム</option>
             </select>
           </label>
@@ -237,6 +239,49 @@
           </fieldset>
           <div class="settings-row" aria-live="polite">
             <span><b>テーマの反映</b><small>システム既定では端末の外観設定に合わせて自動で切り替わります。</small></span>
+          </div>
+          <div class="settings-favicon">
+            <div>
+              <b>サイトのアイコン</b>
+              <small>Googleのfavicon取得APIを使って指定したサイトのアイコンを表示します。カスタムURLにはサイトのHTTPS URLを入力してください。</small>
+            </div>
+            <div class="settings-favicon-controls">
+              <img id="settingsFaviconPreview" src="/images/YouTube-Logo-Vector.png" alt="faviconプレビュー">
+              <select id="settingsFaviconPreset" class="settings-select" aria-label="faviconのプリセット">
+                <option value="default">WeTube（既定）</option>
+                <option value="classroom">Google Classroom</option>
+                <option value="google">Google</option>
+                <option value="eigosapuri">英語アプリ</option>
+                <option value="custom">カスタムURL</option>
+              </select>
+              <input id="settingsFaviconUrl" class="settings-favicon-url" type="url" inputmode="url" placeholder="https://example.com" aria-label="カスタムサイトURL" disabled>
+              <button id="settingsFaviconApply" class="settings-danger-button" type="button" disabled>適用</button>
+            </div>
+          </div>
+          <div class="settings-favicon">
+            <div>
+              <b>タブ名</b>
+              <small>ブラウザーのタブに表示する名前です。空欄にするとページごとの既定名に戻ります。</small>
+            </div>
+            <div class="settings-favicon-controls">
+              <input id="settingsTabName" class="settings-favicon-url" type="text" maxlength="60" placeholder="既定のページ名" aria-label="タブ名">
+              <button id="settingsTabNameApply" class="settings-danger-button" type="button">保存</button>
+              <button id="settingsTabNameReset" class="settings-danger-button" type="button">既定に戻す</button>
+            </div>
+          </div>
+          <div class="settings-favicon">
+            <div>
+              <b>URLへの移動ショートカット</b>
+              <small>設定したキーを押すと画面を白くしてから指定URLへ移動します。複数キーはカンマ区切りで入力できます。初期キーは [ です。</small>
+            </div>
+            <div class="settings-favicon-controls">
+              <input id="settingsNavigationUrl" class="settings-favicon-url" type="url" inputmode="url" placeholder="https://example.com" aria-label="移動先URL">
+              <label class="settings-navigation-key">
+                <span>移動キー（,区切り）</span>
+                <input id="settingsNavigationKey" type="text" maxlength="80" placeholder="[, g" aria-label="移動キー">
+              </label>
+              <button id="settingsNavigationSave" class="settings-danger-button" type="button">保存</button>
+            </div>
           </div>
         </section>
 
@@ -268,6 +313,10 @@
           <label class="settings-row" for="settingsReduceMotion">
             <span><b>アニメーションを減らす</b><small>画面切り替えやホバー時の動きを抑えます。</small></span>
             <input id="settingsReduceMotion" class="settings-switch" type="checkbox">
+          </label>
+          <label class="settings-row" for="settingsIndependentWatchScroll">
+            <span><b>動画ページのスクロールを分離</b><small>動画・コメント欄と関連動画を、それぞれ独立してスクロールできるようにします（PC表示のみ）。</small></span>
+            <input id="settingsIndependentWatchScroll" class="settings-switch" type="checkbox">
           </label>
         </section>
 
@@ -518,7 +567,7 @@
           <!-- Player Container -->
           <div id="playerContainer" class="player-container">
             <div class="player-shell">
-              <iframe id="player" src="<%= playerMode === 'youtube' ? youtubeUrl : eduUrl %>" title="<%= video.title %>" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+              <iframe id="player" src="<%= playerMode === 'youtube' ? youtubeUrl : playerMode === 'nocookie' ? nocookieUrl : eduUrl %>" title="<%= video.title %>" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
               <video id="streamPlayer" controls playsinline preload="metadata" hidden></video>
               <!-- Autoplay Countdown Overlay -->
               <div id="autoplayOverlay" class="autoplay-overlay" hidden>
@@ -579,13 +628,14 @@
               <button id="shareButton" class="pill icon-only watch-icon-button" title="共有" aria-label="共有"><%- icon('share') %></button>
               <button id="saveButton" class="pill icon-only watch-icon-button" title="保存" aria-label="保存"><%- icon('clock') %></button>
               <label class="player-mode-control">
-                <select id="playerModeSelect" class="player-mode-select" data-mode="<%= playerMode === 'youtube' ? 'youtube' : 'edu:0' %>" data-edu="<%= eduUrl %>" data-youtube="<%= youtubeUrl %>" data-edu-sources='<%- JSON.stringify(eduSources || []) %>' aria-label="再生方法">
+                <select id="playerModeSelect" class="player-mode-select" data-mode="<%= ['youtube', 'nocookie'].includes(playerMode) ? playerMode : 'edu:0' %>" data-edu="<%= eduUrl %>" data-youtube="<%= youtubeUrl %>" data-nocookie="<%= nocookieUrl %>" data-edu-sources='<%- JSON.stringify(eduSources || []) %>' aria-label="再生方法">
                   <option value="youtube" <%= playerMode === 'youtube' ? 'selected' : '' %>>YouTube</option>
+                  <option value="nocookie" <%= playerMode === 'nocookie' ? 'selected' : '' %>>nocookie再生</option>
                   <% (eduSources || []).forEach((source, index) => { %>
-                    <option value="edu:<%= index %>" <%= playerMode !== 'youtube' && index === 0 ? 'selected' : '' %>>Edu <%= index + 1 %></option>
+                    <option value="edu:<%= index %>" <%= !['youtube', 'nocookie'].includes(playerMode) && index === 0 ? 'selected' : '' %>>Edu <%= index + 1 %></option>
                   <% }); %>
                   <% if (!(eduSources || []).length) { %>
-                    <option value="edu:0" <%= playerMode !== 'youtube' ? 'selected' : '' %>>Edu</option>
+                    <option value="edu:0" <%= !['youtube', 'nocookie'].includes(playerMode) ? 'selected' : '' %>>Edu</option>
                   <% } %>
                   <option value="stream">ストリーム</option>
                 </select>
@@ -699,7 +749,7 @@
 
           <div class="related-list">
             <% videos.forEach(v => { %>
-              <div class="related-card-wrap">
+              <div class="related-card-wrap" data-video-id="<%= v.id %>">
                 <a class="related-card" href="<%= v.isShort ? '/shorts/' + encodeURIComponent(v.id) : '/watch?v=' + v.id %>" data-video-id="<%= v.id %>">
                   <div class="related-thumb">
                     <img src="<%= v.thumbnail %>" alt="" loading="lazy">
@@ -845,10 +895,10 @@
               <span><%= videos.length %>件</span>
             </div>
             <% if (videos.length) { %>
-              <div class="video-grid channel-video-grid">
+              <div class="video-grid channel-video-grid<%= entity.tab === 'shorts' ? ' channel-short-grid' : '' %>">
                 <% videos.forEach(v => { %>
-                  <article class="video-card <%= v.isPlaylist ? 'playlist-card' : '' %>">
-                    <a class="thumb" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>">
+                  <article class="video-card channel-video-card<%= v.isPlaylist ? ' playlist-card' : '' %><%= entity.tab === 'shorts' && v.isShort ? ' channel-short-card' : '' %>">
+                    <a class="thumb<%= entity.tab === 'shorts' && v.isShort ? ' channel-short-thumb' : '' %>" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>">
                       <img src="<%= v.thumbnail %>" alt="" loading="lazy">
                       <% if (v.isPlaylist) { %>
                         <div class="playlist-overlay"><%- icon('playlist') %><span><%= v.count || '再生リスト' %></span></div>
@@ -856,7 +906,7 @@
                         <span class="duration"><%= v.duration %></span>
                       <% } %>
                     </a>
-                    <div class="card-info">
+                    <div class="card-info channel-video-card-info<%= entity.tab === 'shorts' && v.isShort ? ' channel-short-info' : '' %>">
                       <div class="card-copy">
                         <a class="video-title" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>"><%= v.title %></a>
                         <span><%= v.views || v.count || '' %></span>
@@ -1136,10 +1186,10 @@
   <script src="/scripts/app-auth.js?v=2.9.41" defer></script>
   <script src="/scripts/app-progress.js?v=2.9.41" defer></script>
   <script src="/scripts/app-queue.js?v=2.9.41" defer></script>
-  <script src="/scripts/app-keyboard.js?v=2.9.41" defer></script>
+  <script src="/scripts/app-keyboard.js?v=2.9.43" defer></script>
   <script src="/scripts/app-channel.js?v=2.9.41" defer></script>
   <script src="/scripts/app-library-controls.js?v=2.9.41" defer></script>
-  <script src="/scripts/app-feed-pagination.js?v=2.9.41" defer></script>
-  <script src="/scripts/app-settings.js?v=2.9.55" defer></script>
+  <script src="/scripts/app-settings.js?v=2.9.60" defer></script>
+  <script src="/scripts/app-feed-pagination.js?v=2.9.45" defer></script>
 </body>
 </html>

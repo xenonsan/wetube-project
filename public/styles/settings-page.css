@@ -100,6 +100,77 @@
 .settings-theme-options input {
   accent-color: var(--yt-blue);
 }
+.settings-favicon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 68px;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.settings-favicon > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-favicon b {
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+.settings-favicon small {
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+.settings-favicon-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-favicon-controls img {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+.settings-favicon-url {
+  width: 230px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+.settings-favicon-url:disabled {
+  opacity: 0.5;
+}
+.settings-favicon-controls #settingsTabName {
+  width: 260px;
+}
+.settings-favicon-controls #settingsNavigationUrl {
+  width: 260px;
+}
+.settings-navigation-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+.settings-navigation-key input {
+  width: 42px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  font: inherit;
+  font-size: 1.5rem;
+}
 .settings-data-row {
   min-height: 76px;
 }
@@ -134,5 +205,21 @@
   .settings-select {
     min-width: 0;
     max-width: 46%;
+  }
+  .settings-favicon {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .settings-favicon-controls {
+    flex-wrap: wrap;
+  }
+  .settings-favicon-controls .settings-select {
+    flex: 1 1 180px;
+    max-width: none;
+  }
+  .settings-favicon-url {
+    flex: 1 1 100%;
+    width: 100%;
   }
 }

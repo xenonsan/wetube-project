@@ -78,13 +78,24 @@ export function createRecommendationService({
     const lookupClient = await youtubePromise;
     // Author metadata is supplementary. Fetch it in small parallel batches so
     // the recommendation request is not serialized behind an artificial delay.
-    const targets = videos.filter(video => video && video.id && (!video.authorThumbnail || !video.authorId || !video.author || video.author === 'YouTube')).slice(0, 32);
+    const targets = videos.filter(video => video && video.id &&
+      (!video.duration || !video.authorThumbnail || !video.authorId || !video.author || video.author === 'YouTube')).slice(0, 32);
     const infoCache = new Map();
     for (let offset = 0; offset < targets.length; offset += 8) {
       await Promise.all(targets.slice(offset, offset + 8).map(async video => {
         try {
           const info = await cached(`home-author-info-v3:${video.id}`, 900000, () => lookupClient.getBasicInfo(video.id));
           const b = info?.basic_info || info?.basicInfo || {};
+          const durationSeconds = Number(b.duration ?? b.duration_seconds ?? b.durationSeconds);
+          if (!video.duration && Number.isFinite(durationSeconds) && durationSeconds > 0) {
+            const totalSeconds = Math.floor(durationSeconds);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            video.duration = hours
+              ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`
+              : `${minutes}:${seconds}`;
+          }
           const channel = b.channel || {};
           const channelId = b.channel_id || b.channelId || channel.id || video.authorId || '';
           const channelName = text(b.author || b.channel_name || b.channelName || channel.name, '');

@@ -2,7 +2,7 @@
 import express from 'express';
 import compression from 'compression';
 import { randomUUID } from 'node:crypto';
-import { Innertube, UniversalCache, YTNodes } from 'youtubei.js';
+import { Innertube, UniversalCache, YTNodes, Log } from 'youtubei.js';
 import { createAuthService } from './src/auth.js';
 import { memory, cached, userCached, eduParams, eduParamSources } from './src/cache.js';
 import {
@@ -20,6 +20,8 @@ import { createWatchHistoryRequestDeduper } from './src/services/watch-history.j
 const app = express();
 const PORT = Number(process.env.PORT || 4646);
 const EDU_CONFIG = 'https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json';
+
+if (process.env.NODE_ENV === 'production') Log.setLevel(Log.Level.ERROR);
 
 const auth = createAuthService({
   app,
@@ -91,17 +93,18 @@ for (const [route, file, type] of staticAssets) {
 }
 app.use('/styles', express.static(new URL('./public/styles', import.meta.url).pathname, { maxAge: '1d' }));
 
-function render(res, data) { res.render('app', { page: data.page, title: data.title || 'WeTube', videos: data.videos || [], shorts: data.shorts || [], video: data.video || null, query: data.query || '', eduUrl: data.eduUrl || '', eduSources: data.eduSources || [], youtubeUrl: data.youtubeUrl || '', playerMode: data.playerMode || 'edu', isLive: Boolean(data.isLive), liveChatMode: data.liveChatMode || 'none', liveChatReplayAvailable: Boolean(data.liveChatReplayAvailable), liveChatAvailable: Boolean(data.liveChatAvailable), error: data.error || '', entity: data.entity || null, libraryType: data.libraryType || '', searchType: data.searchType || 'all', authenticated: Boolean(data.authenticated ?? false), channels: data.channels || [], channelContent: data.channelContent || { featured:null, uploads:[], shorts:[], playlists:[] }, shortSession: data.shortSession || '', shortChannelId: data.shortChannelId || '', feedToken: data.feedToken || '' }); }
+function render(res, data) { res.render('app', { page: data.page, title: data.title || 'WeTube', videos: data.videos || [], shorts: data.shorts || [], video: data.video || null, query: data.query || '', eduUrl: data.eduUrl || '', eduSources: data.eduSources || [], youtubeUrl: data.youtubeUrl || '', nocookieUrl: data.nocookieUrl || '', playerMode: data.playerMode || 'edu', isLive: Boolean(data.isLive), liveChatMode: data.liveChatMode || 'none', liveChatReplayAvailable: Boolean(data.liveChatReplayAvailable), liveChatAvailable: Boolean(data.liveChatAvailable), error: data.error || '', entity: data.entity || null, libraryType: data.libraryType || '', searchType: data.searchType || 'all', authenticated: Boolean(data.authenticated ?? false), channels: data.channels || [], channelContent: data.channelContent || { featured:null, uploads:[], shorts:[], playlists:[] }, shortSession: data.shortSession || '', shortChannelId: data.shortChannelId || '', feedToken: data.feedToken || '' }); }
 
 const feedSessions = new Map();
 const feedSessionTtl = 30 * 60 * 1000;
-function makeFeedSession(feed, { seen = [], pending = [] } = {}) {
+function makeFeedSession(feed, { seen = [], pending = [], fallbackFeed = null } = {}) {
   const now = Date.now();
   for (const [token, session] of feedSessions) if (session.expires <= now) feedSessions.delete(token);
   while (feedSessions.size >= 300) feedSessions.delete(feedSessions.keys().next().value);
   const token = randomUUID();
   feedSessions.set(token, {
     feed,
+    fallbackFeed,
     seen: new Set(seen),
     pending: [...pending],
     expires: now + feedSessionTtl
@@ -290,8 +293,16 @@ async function nextFeedPage(session, limit = 24) {
   };
   while (session.pending.length && videos.length < limit) add(session.pending.shift());
   let current = session.feed;
-  for (let attempt = 0; current?.has_continuation && videos.length < limit && attempt < 3; attempt++) {
-    current = await current.getContinuation();
+  for (let attempt = 0; videos.length < limit && attempt < 5; attempt++) {
+    if (!current?.has_continuation) {
+      if (!session.fallbackFeed) break;
+      current = session.fallbackFeed;
+      const next = await current.getContinuation();
+      session.fallbackFeed = null;
+      current = next;
+    } else {
+      current = await current.getContinuation();
+    }
     const candidates = collectVideos(current, 200);
     for (let index = 0; index < candidates.length; index++) {
       if (videos.length >= limit) {
@@ -302,7 +313,7 @@ async function nextFeedPage(session, limit = 24) {
     }
   }
   session.feed = current;
-  return { videos, hasMore: Boolean(session.pending.length || current?.has_continuation) };
+  return { videos, hasMore: Boolean(session.pending.length || current?.has_continuation || session.fallbackFeed) };
 }
 
 const accountHistorySessions = new Map();
@@ -661,7 +672,15 @@ app.get('/api/videos', async (req, res) => {
         const author = text(b.author || channel.name || owner.name, 'YouTube');
         const authorId = b.channel_id || channel.id || owner.id || '';
         const authorThumbnail = proxied(bestThumbnail(channel.thumbnail)?.url || bestThumbnail(channel.thumbnails)?.url || owner.best_thumbnail?.url || bestThumbnail(owner.thumbnails)?.url || rawImage(owner));
-        return { id, title: b.title || `動画 (${id})`, author, authorId, authorThumbnail, thumbnail: proxied(b.thumbnail?.at?.(-1)?.url || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`), duration: b.duration ? `${Math.floor(Number(b.duration)/60)}:${String(Number(b.duration)%60).padStart(2,'0')}` : '', views: formatViewCount(b.view_count), published: b.publish_date || '' };
+        const durationSeconds = Number(b.duration?.seconds ?? b.duration_seconds ?? b.durationSeconds ?? b.duration);
+        const totalSeconds = Math.floor(durationSeconds);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        const duration = Number.isFinite(durationSeconds) && durationSeconds > 0
+          ? hours ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}` : `${minutes}:${seconds}`
+          : text(b.duration?.text || b.duration?.simple_text || b.duration?.simpleText, '');
+        return { id, title: b.title || `動画 (${id})`, author, authorId, authorThumbnail, thumbnail: proxied(b.thumbnail?.at?.(-1)?.url || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`), duration, views: formatViewCount(b.view_count), published: b.publish_date || '' };
       } catch {
         return { id, title:`動画 (${id})`, author:'チャンネル不明', authorId:'', authorThumbnail:'', thumbnail:proxied(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`), duration:'', views:'', published:'' };
       }
@@ -749,8 +768,31 @@ app.get('/watch', async (req, res, next) => {
     }
     const relatedVideos = related.slice(0, 24);
     const relatedPending = related.slice(relatedVideos.length);
-    const relatedFeedToken = relatedFeed?.has_continuation || relatedPending.length
-      ? makeFeedSession(relatedFeed, { seen: relatedVideos.map(item => item.id), pending: relatedPending })
+    let watchNextFeed = null;
+    if (typeof info.getWatchNextContinuation === 'function') {
+      let hasContinuation = true;
+      const createWatchNextPage = contents => ({
+        videos: contents,
+        get has_continuation() { return hasContinuation; },
+        getContinuation: async () => {
+          try {
+            await info.getWatchNextContinuation();
+            return createWatchNextPage(info.watch_next_feed || []);
+          } catch (error) {
+            hasContinuation = false;
+            console.warn(`Watch-next related continuation unavailable [${id}]:`, error?.message || error);
+            return createWatchNextPage([]);
+          }
+        }
+      });
+      watchNextFeed = createWatchNextPage(info.watch_next_feed || []);
+    }
+    const relatedFeedToken = relatedFeed?.has_continuation || relatedPending.length || watchNextFeed
+      ? makeFeedSession(relatedFeed, {
+        seen: relatedVideos.map(item => item.id),
+        pending: relatedPending,
+        fallbackFeed: watchNextFeed
+      })
       : '';
     const authClient = await ensureAuthClient(req);
     render(res, {
@@ -764,10 +806,11 @@ app.get('/watch', async (req, res, next) => {
       videos: relatedVideos,
       feedToken: relatedFeedToken,
       authenticated: Boolean(authClient.session.logged_in),
-      playerMode: req.query.player === 'youtube' ? 'youtube' : 'edu',
+      playerMode: ['youtube', 'nocookie'].includes(req.query.player) ? req.query.player : 'edu',
       eduUrl: `https://www.youtubeeducation.com/embed/${id}${params}&enablejsapi=1`,
       eduSources: eduSources.map(source => ({ name: source.name, url: `https://www.youtubeeducation.com/embed/${id}${source.params}&enablejsapi=1` })),
-      youtubeUrl: `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`
+      youtubeUrl: `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`,
+      nocookieUrl: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`
     });
   } catch (e) { next(e); }
 });
@@ -1462,5 +1505,18 @@ app.use((req,res)=>{
   if (req.path.startsWith('/api/')) return res.status(404).set('Cache-Control','no-store').json({error:'API endpoint not found.'});
   res.redirect('/');
 });
-app.use((error,_req,res,_next)=>{console.error(error);res.status(500);render(res,{page:'error',title:'エラー',error:'動画データを取得できませんでした。少し待ってから再読み込みしてください。'});});
+app.use((error,_req,res,next)=>{
+  if (res.headersSent) return next(error);
+  const youtubeBlocked = /status code 403\b/i.test(String(error?.message || ''));
+  if (youtubeBlocked) console.warn('YouTube API request was blocked (HTTP 403); the server may be temporarily restricted.');
+  else console.error(error);
+  res.status(youtubeBlocked ? 503 : 500);
+  render(res,{
+    page:'error',
+    title:'エラー',
+    error:youtubeBlocked
+      ? 'YouTube側でこのサーバーからの通信が制限されています。時間をおいて再試行してください。'
+      : '動画データを取得できませんでした。少し待ってから再読み込みしてください。'
+  });
+});
 app.listen(PORT,()=>console.log(`WeTube: http://localhost:${PORT}`));
