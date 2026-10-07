@@ -34,10 +34,12 @@
           ${v.isShort ? '<span class="shorts-video-badge">Shorts</span>' : ''}
         </a>
         <div class="card-info">
-          ${v.authorThumbnail ? `<img class="channel-avatar" src="${esc(v.authorThumbnail)}" alt="">` : `<span class="channel-avatar fallback">${esc((v.author || 'Y').slice(0, 1))}</span>`}
+          ${v.authorId ? `<a class="channel-avatar-link" href="/channel/${encodeURIComponent(v.authorId)}">` : ''}
+            ${v.authorThumbnail ? `<img class="channel-avatar" src="${esc(v.authorThumbnail)}" alt="">` : `<span class="channel-avatar fallback">${esc((v.author || 'Y').slice(0, 1))}</span>`}
+          ${v.authorId ? '</a>' : ''}
           <div class="card-copy">
             <a class="video-title" href="${href}">${esc(v.title)}</a>
-            <span>${esc(v.author)}</span>
+            ${v.authorId ? `<a class="channel-name-link" href="/channel/${encodeURIComponent(v.authorId)}">${esc(v.author)}</a>` : `<span>${esc(v.author)}</span>`}
             <span>${esc([v.views, v.published].filter(Boolean).join('・'))}</span>
           </div>
           <button class="more-btn" aria-label="その他のアクション" data-video-id="${esc(v.id)}" data-title="${esc(v.title)}">

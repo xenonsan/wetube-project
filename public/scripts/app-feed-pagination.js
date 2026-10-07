@@ -120,16 +120,24 @@
     const card = kind === 'related' ? element('div', 'related-card-wrap') : element('article', 'video-card');
     card.dataset.videoId = video.id;
     if (kind === 'related') {
-      const link = element('a', 'related-card');
-      link.href = video.isShort ? `/shorts/${encodeURIComponent(video.id)}` : `/watch?v=${encodeURIComponent(video.id)}`;
-      link.dataset.videoId = video.id;
+      const link = element('div', 'related-card');
+      const videoHref = video.isShort ? `/shorts/${encodeURIComponent(video.id)}` : `/watch?v=${encodeURIComponent(video.id)}`;
+      const thumbLink = element('a', 'related-thumb-link');
+      thumbLink.href = videoHref;
+      thumbLink.dataset.videoId = video.id;
       const thumb = element('div', 'related-thumb');
       thumb.append(image(video.thumbnail, '', '', video.id));
       if (video.isShort) thumb.append(element('span', 'shorts-video-badge', 'Shorts'));
       if (video.duration) thumb.append(element('span', 'duration', video.duration));
+      thumbLink.append(thumb);
       const info = element('div', 'related-info');
-      info.append(element('b', 'related-title', video.title || '動画'), element('span', 'related-channel', video.author || 'チャンネル不明'), element('span', 'related-meta', video.views || '再生回数不明'));
-      link.append(thumb, info);
+      const title = element('a', 'related-title', video.title || '動画');
+      title.href = videoHref;
+      info.append(title);
+      const channel = video.authorId ? element('a', 'related-channel', video.author || 'チャンネル不明') : element('span', 'related-channel', video.author || 'チャンネル不明');
+      if (video.authorId) channel.href = `/channel/${encodeURIComponent(video.authorId)}`;
+      info.append(channel, element('span', 'related-meta', video.views || '再生回数不明'));
+      link.append(thumbLink, info);
       card.append(link, moreButton(video, true));
       return card;
     }
@@ -139,7 +147,15 @@
     link.append(image(video.thumbnail, '', '', video.id));
     if (video.duration) link.append(element('span', 'duration', video.duration));
     const info = element('div', 'card-info');
-    info.append(video.authorThumbnail ? image(video.authorThumbnail, 'channel-avatar') : element('span', 'channel-avatar fallback', (video.author || 'Y').slice(0, 1)));
+    const avatar = video.authorThumbnail ? image(video.authorThumbnail, 'channel-avatar') : element('span', 'channel-avatar fallback', (video.author || 'Y').slice(0, 1));
+    if (video.authorId) {
+      const avatarLink = element('a', 'channel-avatar-link');
+      avatarLink.href = `/channel/${encodeURIComponent(video.authorId)}`;
+      avatarLink.append(avatar);
+      info.append(avatarLink);
+    } else {
+      info.append(avatar);
+    }
     const copy = element('div', 'card-copy');
     const title = element('a', 'video-title', video.title || '動画');
     title.href = link.href;

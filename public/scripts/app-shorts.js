@@ -16,6 +16,7 @@
   let currentCommentId = '';
   let activeReel = null;
   let activePlaybackSessionId = '';
+  const channelId = feed.dataset.channelId || '';
 
   function closeShortComments() {
     document.body.classList.remove('short-comments-open');
@@ -44,7 +45,8 @@
     const shortId = reel.dataset.shortId;
     recordHistoryForCurrentAccount(shortId);
     recordAccountWatch(shortId, activePlaybackSessionId);
-    history.replaceState(null, '', `/shorts/${shortId}`);
+    const channelQuery = channelId ? `?channel=${encodeURIComponent(channelId)}` : '';
+    history.replaceState(null, '', `/shorts/${shortId}${channelQuery}`);
     if (activeIndex >= reels.length - 3) loadMoreShorts();
   }
 

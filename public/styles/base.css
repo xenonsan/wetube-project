@@ -693,6 +693,7 @@ body[data-page="watch"].watch-sidebar-open .scrim {
   object-fit: cover;
   background: var(--raised);
 }
+.channel-avatar-link { display: block; width: fit-content; height: fit-content; border-radius: 50%; }
 .channel-avatar.fallback {
   display: grid;
   place-items: center;
@@ -847,6 +848,7 @@ body[data-page="watch"].watch-sidebar-open .scrim {
   border-radius: 50%;
   object-fit: cover;
 }
+.home-short-avatar-link { display: inline-flex; }
 @media (max-width: 650px) {
   .home-shorts-row { gap: 12px; }
   .home-short-card { flex-basis: 42vw; }

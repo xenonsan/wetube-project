@@ -6,12 +6,12 @@
   <meta name="color-scheme" content="dark light">
   <title><%= title %> | YouTube</title>
   <link id="siteFavicon" rel="icon" type="image/png" referrerpolicy="no-referrer" href="/images/YouTube-Logo-Vector.png">
-  <link rel="stylesheet" href="/style.css?v=2.9.58">
+  <link rel="stylesheet" href="/style.css?v=2.9.59">
   <% if (page === 'settings') { %>
     <link rel="stylesheet" href="/styles/settings-page.css?v=2.9.48">
   <% } %>
   <% if (page === 'watch') { %>
-    <link rel="stylesheet" href="/watch.css?v=2.9.51">
+    <link rel="stylesheet" href="/watch.css?v=2.9.52">
   <% } %>
 </head>
 <body data-page="<%= page %>" data-authenticated="<%= authenticated ? 'true' : 'false' %>"<% if (video) { %> data-video-id="<%= video.id %>"<% } %><% if (page === 'watch' && isLive) { %> data-live="true"<% } %><% if (page === 'watch') { %> data-live-chat-mode="<%= liveChatMode %>"<% } %>>
@@ -410,6 +410,9 @@
                 <div class="search-short-info">
                   <a class="video-title" href="/shorts/<%= encodeURIComponent(v.id) %>"><%= v.title %></a>
                   <% if (v.authorId) { %>
+                    <a class="channel-avatar-link search-short-avatar" href="/channel/<%= encodeURIComponent(v.authorId) %>">
+                      <% if (v.authorThumbnail) { %><img src="<%= v.authorThumbnail %>" alt=""><% } else { %><span class="fallback"><%= String(v.author || 'Y').slice(0, 1) %></span><% } %>
+                    </a>
                     <a class="channel-name-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><%= v.author %></a>
                   <% } else { %>
                     <span><%= v.author || 'チャンネル不明' %></span>
@@ -448,9 +451,9 @@
                 </a>
                 <div class="card-info">
                   <% if (v.authorThumbnail) { %>
-                    <img class="channel-avatar" src="<%= v.authorThumbnail %>" alt="">
+                    <% if (v.authorId) { %><a class="channel-avatar-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><% } %><img class="channel-avatar" src="<%= v.authorThumbnail %>" alt=""><% if (v.authorId) { %></a><% } %>
                   <% } else { %>
-                    <span class="channel-avatar fallback"><%= (v.author || 'Y').slice(0, 1) %></span>
+                    <% if (v.authorId) { %><a class="channel-avatar-link" href="/channel/<%= encodeURIComponent(v.authorId) %>"><% } %><span class="channel-avatar fallback"><%= (v.author || 'Y').slice(0, 1) %></span><% if (v.authorId) { %></a><% } %>
                   <% } %>
                   <div class="card-copy">
                     <a class="video-title" href="/watch?v=<%= v.id %>"><%= v.title %></a>
@@ -488,12 +491,13 @@
                   <div class="home-short-copy">
                     <a class="home-short-title" href="/shorts/<%= v.id %>"><%= v.title || 'ショート動画' %></a>
                     <div class="home-short-channel">
+                      <% if (v.authorId) { %><a href="/channel/<%= encodeURIComponent(v.authorId) %>"><% } %>
                       <% if (v.authorThumbnail) { %>
                         <img src="<%= v.authorThumbnail %>" alt="">
                       <% } else { %>
                         <span class="fallback"><%= String(v.author || 'Y').slice(0, 1) %></span>
                       <% } %>
-                      <span><%= v.author || 'YouTube' %></span>
+                      <% if (v.authorId) { %></a><a href="/channel/<%= encodeURIComponent(v.authorId) %>"><% } %><span><%= v.author || 'YouTube' %></span><% if (v.authorId) { %></a><% } %>
                     </div>
                     <small><%= v.views || '' %></small>
                   </div>
@@ -750,8 +754,9 @@
           <div class="related-list">
             <% videos.forEach(v => { %>
               <div class="related-card-wrap" data-video-id="<%= v.id %>">
-                <a class="related-card" href="<%= v.isShort ? '/shorts/' + encodeURIComponent(v.id) : '/watch?v=' + v.id %>" data-video-id="<%= v.id %>">
-                  <div class="related-thumb">
+                <div class="related-card">
+                  <a class="related-thumb-link" href="<%= v.isShort ? '/shorts/' + encodeURIComponent(v.id) : '/watch?v=' + v.id %>" data-video-id="<%= v.id %>">
+                    <div class="related-thumb">
                     <img src="<%= v.thumbnail %>" alt="" loading="lazy">
                     <% if (v.duration) { %>
                       <span class="duration"><%= v.duration %></span>
@@ -759,13 +764,14 @@
                     <% if (v.isShort) { %>
                       <span class="shorts-video-badge">Shorts</span>
                     <% } %>
-                  </div>
+                    </div>
+                  </a>
                   <div class="related-info">
-                    <b class="related-title"><%= v.title %></b>
-                    <span class="related-channel"><%= v.author %></span>
+                    <a class="related-title" href="<%= v.isShort ? '/shorts/' + encodeURIComponent(v.id) : '/watch?v=' + v.id %>"><%= v.title %></a>
+                    <% if (v.authorId) { %><a class="related-channel" href="/channel/<%= encodeURIComponent(v.authorId) %>"><%= v.author %></a><% } else { %><span class="related-channel"><%= v.author %></span><% } %>
                     <span class="related-meta"><%= v.views || '再生回数不明' %></span>
                   </div>
-                </a>
+                </div>
                 <button class="more-btn related-more-btn" aria-label="その他のアクション" data-video-id="<%= v.id %>" data-title="<%= v.title %>"><%- icon('more') %></button>
               </div>
             <% }) %>
@@ -873,12 +879,13 @@
                   </a>
                   <div class="card-info">
                     <% if (entity.image) { %>
-                      <img class="channel-avatar" src="<%= entity.image %>" alt="">
+                      <a class="channel-avatar-link" href="/channel/<%= encodeURIComponent(entity.id) %>"><img class="channel-avatar" src="<%= entity.image %>" alt=""></a>
                     <% } else { %>
-                      <span class="channel-avatar fallback"><%= entity.title.slice(0, 1) %></span>
+                      <a class="channel-avatar-link" href="/channel/<%= encodeURIComponent(entity.id) %>"><span class="channel-avatar fallback"><%= entity.title.slice(0, 1) %></span></a>
                     <% } %>
                     <div class="card-copy">
                       <a class="video-title" href="/watch?v=<%= v.id %>"><%= v.title %></a>
+                      <a class="channel-name-link" href="/channel/<%= encodeURIComponent(entity.id) %>"><%= entity.title %></a>
                       <span><%= v.views || '' %></span>
                       <span><%= v.published || '' %></span>
                     </div>
@@ -898,7 +905,7 @@
               <div class="video-grid channel-video-grid<%= entity.tab === 'shorts' ? ' channel-short-grid' : '' %>">
                 <% videos.forEach(v => { %>
                   <article class="video-card channel-video-card<%= v.isPlaylist ? ' playlist-card' : '' %><%= entity.tab === 'shorts' && v.isShort ? ' channel-short-card' : '' %>">
-                    <a class="thumb<%= entity.tab === 'shorts' && v.isShort ? ' channel-short-thumb' : '' %>" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>">
+                    <a class="thumb<%= entity.tab === 'shorts' && v.isShort ? ' channel-short-thumb' : '' %>" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + encodeURIComponent(v.id) + '?channel=' + encodeURIComponent(entity.id) : '/watch?v=' + v.id %>">
                       <img src="<%= v.thumbnail %>" alt="" loading="lazy">
                       <% if (v.isPlaylist) { %>
                         <div class="playlist-overlay"><%- icon('playlist') %><span><%= v.count || '再生リスト' %></span></div>
@@ -908,7 +915,8 @@
                     </a>
                     <div class="card-info channel-video-card-info<%= entity.tab === 'shorts' && v.isShort ? ' channel-short-info' : '' %>">
                       <div class="card-copy">
-                        <a class="video-title" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + v.id : '/watch?v=' + v.id %>"><%= v.title %></a>
+                        <a class="video-title" href="<%= v.isPlaylist ? '/playlist?list=' + encodeURIComponent(v.id) : v.isShort ? '/shorts/' + encodeURIComponent(v.id) + '?channel=' + encodeURIComponent(entity.id) : '/watch?v=' + v.id %>"><%= v.title %></a>
+                        <% if (!v.isPlaylist) { %><a class="channel-name-link" href="/channel/<%= encodeURIComponent(entity.id) %>"><%= entity.title %></a><% } %>
                         <span><%= v.views || v.count || '' %></span>
                         <span><%= v.published || '' %></span>
                       </div>
@@ -1005,7 +1013,7 @@
               </a>
               <div class="playlist-item-info">
                 <a class="video-title" href="/watch?v=<%= v.id %>"><%= v.title %></a>
-                <span class="channel-name"><%= v.author %></span>
+                <% if (v.authorId) { %><a href="/channel/<%= encodeURIComponent(v.authorId) %>" class="channel-name"><%= v.author %></a><% } else { %><span class="channel-name"><%= v.author %></span><% } %>
               </div>
             </article>
           <% }) %>
@@ -1178,10 +1186,10 @@
   <script src="/scripts/app-theme.js?v=2.9.41" defer></script>
   <script src="/scripts/app-header.js?v=2.9.48" defer></script>
   <script src="/scripts/app-card-actions.js?v=2.9.41" defer></script>
-  <script src="/scripts/app-watch.js?v=2.9.49" defer></script>
-  <script src="/scripts/app-recommendations.js?v=2.9.59" defer></script>
-  <script src="/scripts/app-shorts.js?v=2.9.52" defer></script>
-  <script src="/scripts/app-library.js?v=2.9.43" defer></script>
+  <script src="/scripts/app-watch.js?v=2.9.50" defer></script>
+  <script src="/scripts/app-recommendations.js?v=2.9.60" defer></script>
+  <script src="/scripts/app-shorts.js?v=2.9.53" defer></script>
+  <script src="/scripts/app-library.js?v=2.9.44" defer></script>
   <script src="/scripts/app-sidebar.js?v=2.9.41" defer></script>
   <script src="/scripts/app-auth.js?v=2.9.41" defer></script>
   <script src="/scripts/app-progress.js?v=2.9.41" defer></script>
@@ -1190,6 +1198,6 @@
   <script src="/scripts/app-channel.js?v=2.9.41" defer></script>
   <script src="/scripts/app-library-controls.js?v=2.9.41" defer></script>
   <script src="/scripts/app-settings.js?v=2.9.60" defer></script>
-  <script src="/scripts/app-feed-pagination.js?v=2.9.45" defer></script>
+  <script src="/scripts/app-feed-pagination.js?v=2.9.46" defer></script>
 </body>
 </html>

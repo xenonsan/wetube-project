@@ -66,6 +66,9 @@
   font-size: 1.8rem;
 }
 .search-shorts-heading .icon { color: var(--yt-red); }
+.search-short-avatar { display: inline-flex; margin-top: 4px; }
+.search-short-avatar img, .search-short-avatar .fallback { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.search-short-avatar .fallback { display: grid; place-items: center; background: #065fd4; color: #fff; }
 .search-shorts-row {
   display: grid;
   grid-auto-columns: minmax(150px, 190px);

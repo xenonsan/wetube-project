@@ -41,7 +41,7 @@
           ${dur}
         </a>
         <div class="card-info">
-          ${avatar}
+          ${v.authorId ? `<a class="channel-avatar-link" href="/channel/${encodeURIComponent(v.authorId)}">${avatar}</a>` : avatar}
           <div class="card-copy">
             <a class="video-title" href="${href}">${esc(v.title)}</a>
             ${v.authorId ? `<a class="channel-name-link" href="/channel/${encodeURIComponent(v.authorId)}">${esc(v.author || 'YouTube')}</a>` : `<span>${esc(v.author || 'YouTube')}</span>`}
@@ -70,8 +70,8 @@
         <div class="home-short-copy">
             <a class="home-short-title" href="${href}">${esc(v.title || v.name || 'ショート動画')}</a>
           <div class="home-short-channel">
-            ${avatar}
-            <span>${esc(v.author || 'YouTube')}</span>
+            ${v.authorId ? `<a class="home-short-avatar-link" href="/channel/${encodeURIComponent(v.authorId)}">${avatar}</a>` : avatar}
+            ${v.authorId ? `<a href="/channel/${encodeURIComponent(v.authorId)}">${esc(v.author || 'YouTube')}</a>` : `<span>${esc(v.author || 'YouTube')}</span>`}
           </div>
           <small>${esc(v.views || '')}</small>
         </div>

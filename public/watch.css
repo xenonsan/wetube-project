@@ -896,6 +896,7 @@
   padding: 2px;
   transition: background 0.15s;
 }
+.related-thumb-link { display: block; flex-shrink: 0; }
 .related-card:hover {
   background: var(--hover);
 }
