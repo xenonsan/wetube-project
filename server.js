@@ -27,7 +27,7 @@ const auth = createAuthService({
   app,
   Innertube,
   UniversalCache,
-  authRoot: new URL('./.wetube-auth', import.meta.url).pathname,
+  authRoot: String(process.env.WETUBE_AUTH_ROOT || '/tmp/.wetube-auth').trim(),
   text,
   rawImage,
   proxied,
